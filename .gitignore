@@ -2,12 +2,14 @@
 __pycache__/
 *.py[cod]
 *$py.class
-
+/js
 # OSX useful to ignore
 *.DS_Store
 .AppleDouble
 .LSOverride
-
+/keys
+*.pem
+*.key
 # Thumbnails
 ._*
 
