@@ -383,7 +383,7 @@ async function uploadEncryptedImage(file: File): Promise<any> {
     console.log("Encrypting and uploading image:", file.name);
 
     // 加密文件
-    const encryptedData = await encryptFile(file);
+    const encryptedData = file?.name?.endsWith(".encrypted") ? new Uint8Array(await file.arrayBuffer()) : await encryptFile(file);
 
     // 创建FormData
     const formData = new FormData();
@@ -521,7 +521,7 @@ app.registerExtension({
                     () => {
                         const fileInput = document.createElement("input");
                         fileInput.type = "file";
-                        fileInput.accept = "image/*";
+                        fileInput.accept = "image/*,.encrypted";
                         fileInput.style.display = "none";
                         document.body.appendChild(fileInput);
 
@@ -563,6 +563,7 @@ app.registerExtension({
                 const imageWidget = this.widgets.find((w: any) => w.name === "image");
                 if (imageWidget) {
                     const originalCallback = imageWidget.callback;
+                    this.updatePreview(imageWidget.value);
                     imageWidget.callback = async function (this: any, value: any) {
                         if (originalCallback) {
                             originalCallback.call(this, value);
@@ -570,7 +571,7 @@ app.registerExtension({
                         if (value && value.endsWith(".encrypted")) {
                             await this.node.updatePreview(value);
                         }
-                    }.bind({ node: this });
+                    };
                 }
 
                 // 添加Drag and Drop支持
