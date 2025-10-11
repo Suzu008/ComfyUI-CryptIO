@@ -112,3 +112,23 @@ def _get_keys() -> dict:
         _KEY_CACHE = {}
         _KEY_CACHE_MTIME = None
         return _KEY_CACHE
+
+
+def update_client_public_key(client_public_pem: bytes):
+    """更新客户端公钥到 keys.json"""
+    global _KEY_CACHE, _KEY_CACHE_MTIME
+
+    # 确保服务端密钥存在
+    _ensure_keys_exist()
+    keys = _load_keys_json()
+
+    # 更新客户端公钥
+    _save_keys_json(
+        keys["server_public_key"],
+        keys["server_private_key"],
+        client_public_pem
+    )
+
+    # 清空缓存，强制重新加载
+    _KEY_CACHE = None
+    _KEY_CACHE_MTIME = None
