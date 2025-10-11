@@ -29,7 +29,7 @@ class UploadImageCryptIO:
         all_files = sorted(set(encrypted_files))
 
         return {
-            "required": {"image": (all_files, {"image_upload": True})},
+            "required": {"image": (all_files, {"file_upload": True})},
         }
 
     RETURN_TYPES = ("IMAGE", "MASK")

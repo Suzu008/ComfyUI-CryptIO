@@ -414,9 +414,9 @@ function getMimeTypeFromFilename(filename: string): string {
         // 如果没有扩展名，默认返回image/png
         return 'image/png';
     }
-    
+
     const extension = baseFilename.substring(lastDotIndex + 1).toLowerCase();
-    
+
     // 扩展名到MIME类型的映射
     const mimeTypes: { [key: string]: string } = {
         // 图片格式
@@ -435,7 +435,7 @@ function getMimeTypeFromFilename(filename: string): string {
         'webm': 'video/webm',
         'mkv': 'video/x-matroska'
     };
-    
+
     return mimeTypes[extension] || 'image/png'; // 默认返回image/png
 }
 
@@ -462,6 +462,30 @@ async function loadEncryptedImageForPreview(filename: string): Promise<string> {
         type: getMimeTypeFromFilename(filename),
     });
     return URL.createObjectURL(blob);
+}
+
+// 处理文件上传的通用方法
+async function handleFileUpload(node: any, file: File) {
+    try {
+        // 上传加密图片
+        const result = await uploadEncryptedImage(file);
+
+        // 更新image widget的值
+        const imageWidget = node.widgets.find(
+            (w: any) => w.name === "image"
+        );
+        if (imageWidget) {
+            imageWidget.value = result.name;
+        }
+
+        // 更新预览
+        await node.updatePreview(result.name);
+
+        app.rootGraph?.setDirtyCanvas(true, false);
+    } catch (error) {
+        console.error("Upload error:", error);
+        alert("Failed to upload encrypted image: " + error);
+    }
 }
 
 // 注册扩展
@@ -504,26 +528,7 @@ app.registerExtension({
                         fileInput.onchange = async () => {
                             if (fileInput.files && fileInput.files.length > 0) {
                                 const file = fileInput.files[0];
-                                try {
-                                    // 上传加密图片
-                                    const result = await uploadEncryptedImage(file);
-
-                                    // 更新image widget的值
-                                    const imageWidget = this.widgets.find(
-                                        (w: any) => w.name === "image"
-                                    );
-                                    if (imageWidget) {
-                                        imageWidget.value = result.name;
-                                    }
-
-                                    // 更新预览
-                                    await this.updatePreview(result.name);
-
-                                    app.rootGraph?.setDirtyCanvas(true, false);
-                                } catch (error) {
-                                    console.error("Upload error:", error);
-                                    alert("Failed to upload encrypted image: " + error);
-                                }
+                                await handleFileUpload(this, file);
                             }
                             document.body.removeChild(fileInput);
                         };
@@ -566,6 +571,58 @@ app.registerExtension({
                             await this.node.updatePreview(value);
                         }
                     }.bind({ node: this });
+                }
+
+                // 添加Drag and Drop支持
+                this.onDragOver = function (e: DragEvent) {
+                    // 检查是否有文件
+                    if (e.dataTransfer && e.dataTransfer.types.includes('Files')) {
+                        // 阻止默认行为以允许drop
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // 设置拖放效果
+                        e.dataTransfer.dropEffect = 'copy';
+                        return true;
+                    }
+                    return false;
+                };
+
+                this.onDragDrop = async function (e: DragEvent) {
+                    // 检查是否有文件
+                    if (!e.dataTransfer || !e.dataTransfer.files || e.dataTransfer.files.length === 0) {
+                        return false;
+                    }
+
+                    e.preventDefault();
+                    e.stopPropagation();
+
+                    // 获取拖放的文件
+                    const file = e.dataTransfer.files[0];
+
+                    // 检查是否为图片文件
+                    if (!file.type.startsWith('image/')) {
+                        alert('Please drop an image file');
+                        return false;
+                    }
+
+                    // 上传文件
+                    await handleFileUpload(this, file);
+
+                    return true;
+                };
+
+                // 添加Paste支持
+                this.pasteFiles = async function (files: File[]) {
+                    for (const file of files) {
+                        // 查找图片类型
+                        if (!file.type.startsWith('image/')) {
+                            continue
+                        }
+                        // 上传文件
+                        await handleFileUpload(this, file);
+                        return true;
+
+                    }
                 }
 
                 return r;
