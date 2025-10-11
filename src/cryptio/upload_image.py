@@ -69,8 +69,8 @@ class UploadImageCryptIO:
                 iv = encrypted_combined[offset : offset + iv_length]
                 offset += iv_length
 
-                # 5. 读取加密的数据
-                encrypted_data = encrypted_combined[offset:]
+                # 5. 读取加密的数据（包含认证标签）
+                encrypted_data_with_tag = encrypted_combined[offset:]
 
                 # 6. 使用RSA私钥解密AES密钥
                 private_pem = _get_keys().get("server_private_key")
@@ -88,10 +88,16 @@ class UploadImageCryptIO:
                 # 7. 使用AES密钥解密图片数据
                 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-                cipher = Cipher(algorithms.AES(aes_key_bytes), modes.GCM(iv), backend=default_backend())
+                # GCM模式：Web Crypto API将16字节的认证标签附加在密文末尾
+                # 需要分离出认证标签和密文
+                tag_length = 16
+                encrypted_data = encrypted_data_with_tag[:-tag_length]
+                tag = encrypted_data_with_tag[-tag_length:]
+
+                cipher = Cipher(algorithms.AES(aes_key_bytes), modes.GCM(iv, tag), backend=default_backend())
                 decryptor = cipher.decryptor()
 
-                # 注意：GCM模式需要处理认证标签，它附加在加密数据的末尾
+                # 解密数据（认证标签已在cipher初始化时提供）
                 decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
 
                 # 从字节数据创建图片
@@ -148,20 +154,7 @@ class UploadImageCryptIO:
 
         except Exception as e:
             print(f"加载/解密图片错误: {e}")
-            # 如果解密失败，尝试正常加载
-            image_path = folder_paths.get_annotated_filepath(image)
-            img = node_helpers.pillow(Image.open, image_path)
-
-            # 简化的错误处理：返回基本的图片和遮罩
-            i = node_helpers.pillow(ImageOps.exif_transpose, img)
-            if i.mode == "I":
-                i = i.point(lambda i: i * (1 / 255))
-            image_rgb = i.convert("RGB")
-            image_array = np.array(image_rgb).astype(np.float32) / 255.0
-            image_tensor = torch.from_numpy(image_array)[None,]
-            mask = torch.zeros((64, 64), dtype=torch.float32, device="cpu").unsqueeze(0)
-
-            return (image_tensor, mask)
+            raise ValueError(f"Failed to decrypt image: {e}")
 
     @classmethod
     def IS_CHANGED(s, image, encrypted):
