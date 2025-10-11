@@ -25,16 +25,11 @@ class UploadImageCryptIO:
     def INPUT_TYPES(s):
         input_dir = folder_paths.get_input_directory()
         files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
-        # 包含图片文件和加密文件
-        image_files = folder_paths.filter_files_content_types(files, ["image"])
         encrypted_files = [f for f in files if f.endswith(".encrypted")]
-        all_files = sorted(set(image_files + encrypted_files))
+        all_files = sorted(set(encrypted_files))
 
         return {
-            "required": {
-                "image": (all_files, {"image_upload": True}),
-                "encrypted": ("BOOLEAN", {"default": False}),
-            },
+            "required": {"image": (all_files, {"image_upload": True})},
         }
 
     RETURN_TYPES = ("IMAGE", "MASK")
@@ -42,14 +37,13 @@ class UploadImageCryptIO:
     FUNCTION = "load_image"
     CATEGORY = "CryptIO"
 
-    def load_image(self, image, encrypted):
+    def load_image(self, image):
         """
         加载并解密图片
-        如果 encrypted=True，从加密文件读取并解密
         """
         try:
             # 检查是否是加密文件（文件名以 .encrypted 结尾）
-            if encrypted and isinstance(image, str) and image.endswith(".encrypted"):
+            if isinstance(image, str) and image.endswith(".encrypted"):
                 # 从加密文件读取
                 image_path = folder_paths.get_annotated_filepath(image)
 
@@ -80,9 +74,9 @@ class UploadImageCryptIO:
 
                 # 6. 使用RSA私钥解密AES密钥
                 private_pem = _get_keys().get("server_private_key")
-                private_key = serialization.load_pem_private_key(private_pem, password=None, backend=default_backend())
+                private_key = serialization.load_pem_private_key(private_pem, password=None, backend=default_backend())  # type: ignore
 
-                aes_key_bytes = private_key.decrypt(
+                aes_key_bytes = private_key.decrypt(  # type: ignore
                     encrypted_aes_key,
                     padding.OAEP(
                         mgf=padding.MGF1(algorithm=hashes.SHA256()),
@@ -105,88 +99,8 @@ class UploadImageCryptIO:
 
                 img = Image.open(BytesIO(decrypted_data))
 
-            elif encrypted and isinstance(image, str) and image.startswith("ENCRYPTED_IMAGE:"):
-                # 兼容：直接传递加密数据的方式（不推荐）
-                encrypted_combined = base64.b64decode(image[16:])  # 去掉 "ENCRYPTED_IMAGE:" 前缀
-
-                # 解析组合数据
-                offset = 0
-
-                # 1. 读取加密的AES密钥长度
-                encrypted_aes_key_length = int.from_bytes(encrypted_combined[offset : offset + 4], byteorder="big")
-                offset += 4
-
-                # 2. 读取加密的AES密钥
-                encrypted_aes_key = encrypted_combined[offset : offset + encrypted_aes_key_length]
-                offset += encrypted_aes_key_length
-
-                # 3. 读取IV长度
-                iv_length = int.from_bytes(encrypted_combined[offset : offset + 4], byteorder="big")
-                offset += 4
-
-                # 4. 读取IV
-                iv = encrypted_combined[offset : offset + iv_length]
-                offset += iv_length
-
-                # 5. 读取加密的数据
-                encrypted_data = encrypted_combined[offset:]
-
-                # 6. 使用RSA私钥解密AES密钥
-                private_pem = _get_keys().get("server_private_key")
-                private_key = serialization.load_pem_private_key(private_pem, password=None, backend=default_backend())
-
-                aes_key_bytes = private_key.decrypt(
-                    encrypted_aes_key,
-                    padding.OAEP(
-                        mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                        algorithm=hashes.SHA256(),
-                        label=None,
-                    ),
-                )
-
-                # 7. 使用AES密钥解密图片数据
-                from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-                cipher = Cipher(algorithms.AES(aes_key_bytes), modes.GCM(iv), backend=default_backend())
-                decryptor = cipher.decryptor()
-
-                # 注意：GCM模式需要处理认证标签，它附加在加密数据的末尾
-                decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
-
-                # 从字节数据创建图片
-                from io import BytesIO
-
-                img = Image.open(BytesIO(decrypted_data))
-
-            elif encrypted and isinstance(image, str) and image.startswith("ENCRYPTED:"):
-                # 兼容旧的纯RSA加密方式（仅用于小数据）
-                encrypted_data = base64.b64decode(image[10:])
-
-                # 获取私钥
-                private_pem = _get_keys().get("server_private_key")
-                private_key = serialization.load_pem_private_key(private_pem, password=None, backend=default_backend())
-
-                # 解密数据
-                decrypted_data = private_key.decrypt(
-                    encrypted_data,
-                    padding.OAEP(
-                        mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                        algorithm=hashes.SHA256(),
-                        label=None,
-                    ),
-                )
-
-                # 解密后的数据应该是图片的base64编码
-                image_data = base64.b64decode(decrypted_data)
-
-                # 从字节数据创建图片
-                from io import BytesIO
-
-                img = Image.open(BytesIO(image_data))
             else:
-                # 正常加载图片（未加密或encrypted=False）
-                image_path = folder_paths.get_annotated_filepath(image)
-                img = node_helpers.pillow(Image.open, image_path)
+                return (None, None)
 
             # 处理图片（与LoadImage节点相同的处理逻辑）
             output_images = []

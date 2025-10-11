@@ -451,10 +451,12 @@ app.registerExtension({
             nodeType.prototype.onNodeCreated = function (this: any) {
                 const r = onNodeCreated?.apply(this, arguments);
 
+                // 移除默认的upload widget
+                this.removeWidgetByName("upload")
                 // 添加上传button widget
                 const uploadWidget = this.addWidget(
                     "button",
-                    "choose file to upload (cryptIO)",
+                    "cryptio-upload",
                     "image",
                     () => {
                         const fileInput = document.createElement("input");
@@ -478,18 +480,10 @@ app.registerExtension({
                                         imageWidget.value = result.name;
                                     }
 
-                                    // 更新encrypted标志
-                                    const encryptedWidget = this.widgets.find(
-                                        (w: any) => w.name === "encrypted"
-                                    );
-                                    if (encryptedWidget) {
-                                        encryptedWidget.value = true;
-                                    }
-
                                     // 更新预览
                                     await this.updatePreview(result.name);
 
-                                    app.graph?.setDirtyCanvas(true, false);
+                                    app.rootGraph?.setDirtyCanvas(true, false);
                                 } catch (error) {
                                     console.error("Upload error:", error);
                                     alert("Failed to upload encrypted image: " + error);
@@ -501,6 +495,7 @@ app.registerExtension({
                         fileInput.click();
                     }
                 );
+                uploadWidget.label = "choose file to upload";
 
                 // 添加预览更新方法
                 this.updatePreview = async function (filename: string) {
@@ -515,7 +510,7 @@ app.registerExtension({
                         const img = new Image();
                         img.onload = () => {
                             this.imgs = [img];
-                            app.graph?.setDirtyCanvas(true, false);
+                            app.rootGraph?.setDirtyCanvas(true, false);
                         };
                         img.src = imageUrl;
                     } catch (error) {
