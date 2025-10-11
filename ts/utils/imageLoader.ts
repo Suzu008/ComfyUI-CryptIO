@@ -4,7 +4,7 @@
  */
 
 import type { ComfyApi } from "@comfyorg/comfyui-frontend-types";
-import { decryptFile } from "./cryptoUtils.js";
+import { decryptFileWithServerKey, decryptFileWithClientKey } from "./cryptoUtils.js";
 import { getMimeTypeFromFilename } from "./fileUtils.js";
 
 export interface ImageLoadParams {
@@ -14,8 +14,7 @@ export interface ImageLoadParams {
 }
 
 /**
- * 从简单文件名加载加密图片（用于UploadImage场景）
- * @param api ComfyUI API实例
+ * 从简单文件名加载加密图片（用于UploadImage场景，使用服务端私钥解密）
  * @param filename 文件名
  * @returns Blob URL
  */
@@ -33,8 +32,8 @@ export async function loadEncryptedImageFromFilename(filename: string): Promise<
     const encryptedArrayBuffer = await response.arrayBuffer();
     const encryptedData = new Uint8Array(encryptedArrayBuffer);
 
-    // 解密数据
-    const decryptedData = await decryptFile(encryptedData);
+    // 使用服务端私钥解密（UploadImage场景）
+    const decryptedData = await decryptFileWithServerKey(encryptedData);
 
     // 转换为Blob URL
     const blob = new Blob([new Uint8Array(decryptedData)], {
@@ -44,7 +43,7 @@ export async function loadEncryptedImageFromFilename(filename: string): Promise<
 }
 
 /**
- * 从参数加载加密图片（用于SaveImage/PreviewImage场景）
+ * 从参数加载加密图片（用于SaveImage/PreviewImage场景，使用客户端私钥解密）
  * @param api ComfyUI API实例
  * @param params 图片参数（包含filename, subfolder, type）
  * @returns Blob URL
@@ -68,8 +67,8 @@ export async function loadEncryptedImageFromParams(api: ComfyApi, params: ImageL
     const encryptedArrayBuffer = await response.arrayBuffer();
     const encryptedData = new Uint8Array(encryptedArrayBuffer);
 
-    // 解密数据
-    const decryptedData = await decryptFile(encryptedData);
+    // 使用客户端私钥解密（SaveImage/PreviewImage场景）
+    const decryptedData = await decryptFileWithClientKey(encryptedData);
 
     // 转换为Blob URL
     const blob = new Blob([new Uint8Array(decryptedData)], {

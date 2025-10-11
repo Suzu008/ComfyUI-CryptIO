@@ -4,21 +4,21 @@
  */
 
 import type { ComfyApp } from "@comfyorg/comfyui-frontend-types";
-import { encryptFile } from "./cryptoUtils.js";
+import { encryptFileWithServerKey } from "./cryptoUtils.js";
 import { loadEncryptedImageFromFilename } from "./imageLoader.js";
 
 /**
- * 上传加密图片到服务器
+ * 上传加密图片到服务器（使用服务端公钥加密）
  * @param file 要上传的文件
  * @returns 服务器响应
  */
 export async function uploadEncryptedImage(file: File): Promise<any> {
     console.log("Encrypting and uploading image:", file.name);
 
-    // 加密文件（如果文件已经加密则直接读取）
+    // 加密文件（使用服务端公钥，如果文件已经加密则直接读取）
     const encryptedData = file?.name?.endsWith(".encrypted")
         ? new Uint8Array(await file.arrayBuffer())
-        : await encryptFile(file);
+        : await encryptFileWithServerKey(file);
 
     // 创建FormData
     const formData = new FormData();

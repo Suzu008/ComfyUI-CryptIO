@@ -3,20 +3,15 @@
  * 提供文件和数据的加密解密功能
  */
 
-import { getServerKeysWithExchange, getServerKeys, importPublicKeyFromPem, importPrivateKeyFromPem } from "./cryptoKeys.js";
+import { getServerKeysWithExchange, getClientKeyPair, importPublicKeyFromPem, importPrivateKeyFromPem, type KeyPair } from "./cryptoKeys.js";
 
 /**
- * 使用混合加密方案加密文件，使用服务端公钥加密 AES 密钥
- * @param file 要加密的文件
+ * 使用混合加密方案加密数据
+ * @param data 要加密的数据
+ * @param publicKeyPem 用于加密AES密钥的公钥（PEM格式）
  * @returns 加密后的数据
  */
-export async function encryptFile(file: File): Promise<Uint8Array> {
-    const serverKeys = await getServerKeysWithExchange();
-
-    // 读取文件内容
-    const arrayBuffer = await file.arrayBuffer();
-    const data = new Uint8Array(arrayBuffer);
-
+async function encryptData(data: Uint8Array, publicKeyPem: string): Promise<Uint8Array> {
     // 1. 生成随机 AES 密钥
     const aesKey = await window.crypto.subtle.generateKey(
         {
@@ -43,15 +38,13 @@ export async function encryptFile(file: File): Promise<Uint8Array> {
     // 4. 导出 AES 密钥
     const rawAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
 
-    // 5. 使用服务端公钥加密 AES 密钥
-    const serverPublicKey = await importPublicKeyFromPem(
-        serverKeys.publicKey
-    );
+    // 5. 使用指定的公钥加密 AES 密钥
+    const publicKey = await importPublicKeyFromPem(publicKeyPem);
     const encryptedAesKey = await window.crypto.subtle.encrypt(
         {
             name: "RSA-OAEP",
         },
-        serverPublicKey,
+        publicKey,
         rawAesKey
     );
 
@@ -73,13 +66,41 @@ export async function encryptFile(file: File): Promise<Uint8Array> {
 }
 
 /**
- * 解密文件数据，使用服务端私钥解密 AES 密钥
+ * 使用混合加密方案加密文件（UploadImage场景，使用服务端公钥）
+ * @param file 要加密的文件
+ * @returns 加密后的数据
+ */
+export async function encryptFileWithServerKey(file: File): Promise<Uint8Array> {
+    const serverKeys = await getServerKeysWithExchange();
+
+    // 读取文件内容
+    const arrayBuffer = await file.arrayBuffer();
+    const data = new Uint8Array(arrayBuffer);
+
+    return await encryptData(data, serverKeys.publicKey);
+}
+
+/**
+ * 使用混合加密方案加密文件（支持自定义密钥对）
+ * @param file 要加密的文件
+ * @param keyPair 密钥对（使用其中的公钥加密）
+ * @returns 加密后的数据
+ */
+export async function encryptFileWithKeyPair(file: File, keyPair: KeyPair): Promise<Uint8Array> {
+    // 读取文件内容
+    const arrayBuffer = await file.arrayBuffer();
+    const data = new Uint8Array(arrayBuffer);
+
+    return await encryptData(data, keyPair.publicKey);
+}
+
+/**
+ * 解密文件数据（使用指定的私钥）
  * @param encryptedData 加密的数据
+ * @param privateKeyPem 用于解密AES密钥的私钥（PEM格式）
  * @returns 解密后的数据
  */
-export async function decryptFile(encryptedData: Uint8Array): Promise<Uint8Array> {
-    const serverKeys = await getServerKeys();
-
+async function decryptData(encryptedData: Uint8Array, privateKeyPem: string): Promise<Uint8Array> {
     // 解析组合数据
     let offset = 0;
 
@@ -106,15 +127,13 @@ export async function decryptFile(encryptedData: Uint8Array): Promise<Uint8Array
     // 5. 读取加密的数据
     const encrypted = encryptedData.slice(offset);
 
-    // 6. 使用服务端私钥解密AES密钥
-    const serverPrivateKey = await importPrivateKeyFromPem(
-        serverKeys.privateKey
-    );
+    // 6. 使用指定的私钥解密AES密钥
+    const privateKey = await importPrivateKeyFromPem(privateKeyPem);
     const aesKeyBuffer = await window.crypto.subtle.decrypt(
         {
             name: "RSA-OAEP",
         },
-        serverPrivateKey,
+        privateKey,
         encryptedAesKey
     );
 
@@ -141,4 +160,34 @@ export async function decryptFile(encryptedData: Uint8Array): Promise<Uint8Array
     );
 
     return new Uint8Array(decryptedBuffer);
+}
+
+/**
+ * 解密文件数据（UploadImage预览场景，使用服务端私钥）
+ * @param encryptedData 加密的数据
+ * @returns 解密后的数据
+ */
+export async function decryptFileWithServerKey(encryptedData: Uint8Array): Promise<Uint8Array> {
+    const serverKeys = await getServerKeysWithExchange();
+    return await decryptData(encryptedData, serverKeys.privateKey);
+}
+
+/**
+ * 解密文件数据（SaveImage/PreviewImage场景，使用客户端私钥）
+ * @param encryptedData 加密的数据
+ * @returns 解密后的数据
+ */
+export async function decryptFileWithClientKey(encryptedData: Uint8Array): Promise<Uint8Array> {
+    const clientKeyPair = await getClientKeyPair();
+    return await decryptData(encryptedData, clientKeyPair.privateKey);
+}
+
+/**
+ * 解密文件数据（支持自定义密钥对）
+ * @param encryptedData 加密的数据
+ * @param keyPair 密钥对（使用其中的私钥解密）
+ * @returns 解密后的数据
+ */
+export async function decryptFileWithKeyPair(encryptedData: Uint8Array, keyPair: KeyPair): Promise<Uint8Array> {
+    return await decryptData(encryptedData, keyPair.privateKey);
 }

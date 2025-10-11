@@ -166,7 +166,7 @@ class PreviewImageCryptIO:
 
 def encrypt_data(data: bytes) -> bytes:
     """
-    使用混合加密方案加密数据
+    使用混合加密方案加密数据（使用客户端公钥加密）
     """
     # 1. 生成随机 AES 密钥和 IV
     aes_key = os.urandom(32)  # 256-bit key
@@ -176,9 +176,11 @@ def encrypt_data(data: bytes) -> bytes:
     encryptor = cipher.encryptor()
     encrypted_data = encryptor.update(data) + encryptor.finalize()
     tag = encryptor.tag  # type: ignore # 获取认证标签
-    # 3. 使用服务端公钥加密 AES 密钥
-    public_pem = _get_keys().get("server_public_key")
-    public_key = serialization.load_pem_public_key(public_pem, backend=default_backend())  # type: ignore
+    # 3. 使用客户端公钥加密 AES 密钥（这样只有客户端能解密）
+    client_public_pem = _get_keys().get("client_public_key")
+    if not client_public_pem:
+        raise ValueError("Client public key not found. Please upload an image first to exchange keys.")
+    public_key = serialization.load_pem_public_key(client_public_pem, backend=default_backend())  # type: ignore
     encrypted_aes_key = public_key.encrypt(  # type: ignore
         aes_key,
         padding.OAEP(
