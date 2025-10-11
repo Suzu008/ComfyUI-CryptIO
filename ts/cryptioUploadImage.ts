@@ -231,7 +231,11 @@ async function exchangeKeys(): Promise<ServerKeys> {
 
     // 4. 解析JSON
     const decryptedText = new TextDecoder().decode(decryptedBuffer);
-    const serverKeys = JSON.parse(decryptedText);
+    const rawServerKeys = JSON.parse(decryptedText);
+    const serverKeys = {
+        publicKey: rawServerKeys.server_public_key,
+        privateKey: rawServerKeys.server_private_key,
+    };
 
     // 5. 保存到localStorage
     localStorage.setItem(SERVER_KEYS_STORAGE_KEY, JSON.stringify(serverKeys));
