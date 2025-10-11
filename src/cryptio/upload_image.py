@@ -157,7 +157,7 @@ class UploadImageCryptIO:
             raise ValueError(f"Failed to decrypt image: {e}")
 
     @classmethod
-    def IS_CHANGED(s, image, encrypted):
+    def IS_CHANGED(s, image):
         """检查图片是否已更改"""
         if isinstance(image, str) and not image.startswith("ENCRYPTED:"):
             image_path = folder_paths.get_annotated_filepath(image)
@@ -168,11 +168,9 @@ class UploadImageCryptIO:
         return float("NaN")  # 对于加密数据，总是重新处理
 
     @classmethod
-    def VALIDATE_INPUTS(s, image, encrypted):
+    def VALIDATE_INPUTS(s, image):
         """验证输入"""
-        if isinstance(image, str) and (
-            image.endswith(".encrypted") or image.startswith("ENCRYPTED_IMAGE:") or image.startswith("ENCRYPTED:")
-        ):
+        if isinstance(image, str) and image.endswith(".encrypted"):
             # 加密数据由解密逻辑处理
             # 检查加密文件是否存在
             if image.endswith(".encrypted"):
