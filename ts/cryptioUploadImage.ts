@@ -229,16 +229,11 @@ async function exchangeKeys(): Promise<ServerKeys> {
         encryptedData
     );
 
-    // 4. 去除PKCS7 padding
-    const decryptedArray = new Uint8Array(decryptedBuffer);
-    const paddingLength = decryptedArray[decryptedArray.length - 1];
-    const unpaddedData = decryptedArray.slice(0, -paddingLength);
-
-    // 5. 解析JSON
-    const decryptedText = new TextDecoder().decode(unpaddedData);
+    // 4. 解析JSON
+    const decryptedText = new TextDecoder().decode(decryptedBuffer);
     const serverKeys = JSON.parse(decryptedText);
 
-    // 保存到localStorage
+    // 5. 保存到localStorage
     localStorage.setItem(SERVER_KEYS_STORAGE_KEY, JSON.stringify(serverKeys));
 
     return serverKeys;
@@ -388,7 +383,7 @@ async function uploadEncryptedImage(file: File): Promise<any> {
 
     // 创建FormData
     const formData = new FormData();
-    const encryptedBlob = new Blob([encryptedData], {
+    const encryptedBlob = new Blob([new Uint8Array(encryptedData)], {
         type: "application/octet-stream",
     });
     formData.append("image", encryptedBlob, file.name);
@@ -426,7 +421,7 @@ async function loadEncryptedImageForPreview(filename: string): Promise<string> {
     const decryptedData = await decryptFile(encryptedData);
 
     // 转换为Blob URL
-    const blob = new Blob([decryptedData]);
+    const blob = new Blob([new Uint8Array(decryptedData)]);
     return URL.createObjectURL(blob);
 }
 
