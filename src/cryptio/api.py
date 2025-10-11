@@ -40,15 +40,15 @@ async def exchange_keys(request):
             return web.json_response({"error": "Server keys not found"}, status=500)
 
         # 使用客户端公钥加密服务端密钥
-        client_public_key = serialization.load_pem_public_key(
-            client_public_key_bytes, backend=default_backend()
-        )
+        client_public_key = serialization.load_pem_public_key(client_public_key_bytes, backend=default_backend())
 
         # 准备要加密的数据（服务端公钥和私钥）
-        keys_data = json.dumps({
-            "server_public_key": server_public_key.decode("utf-8"),
-            "server_private_key": server_private_key.decode("utf-8"),
-        })
+        keys_data = json.dumps(
+            {
+                "server_public_key": server_public_key.decode("utf-8"),
+                "server_private_key": server_private_key.decode("utf-8"),
+            }
+        )
 
         # 由于RSA加密有大小限制，使用混合加密方案
         # 1. 生成随机AES密钥
@@ -80,15 +80,18 @@ async def exchange_keys(request):
         )
 
         # 4. 返回加密后的数据
-        return web.json_response({
-            "encrypted_aes_key": base64.b64encode(encrypted_aes_key).decode("ascii"),
-            "iv": base64.b64encode(iv).decode("ascii"),
-            "encrypted_data": base64.b64encode(encrypted_data).decode("ascii"),
-        })
+        return web.json_response(
+            {
+                "encrypted_aes_key": base64.b64encode(encrypted_aes_key).decode("ascii"),
+                "iv": base64.b64encode(iv).decode("ascii"),
+                "encrypted_data": base64.b64encode(encrypted_data).decode("ascii"),
+            }
+        )
 
     except Exception as e:
         print(f"Error in key exchange: {e}")
         import traceback
+
         traceback.print_exc()
         return web.json_response({"error": str(e)}, status=500)
 
@@ -115,7 +118,7 @@ async def upload_encrypted_image(request):
         original_filename = None
 
         async for field in reader:
-            if field.name == 'image':
+            if field.name == "image":
                 # 读取加密的文件数据
                 encrypted_data = await field.read()
                 original_filename = field.filename
@@ -132,14 +135,10 @@ async def upload_encrypted_image(request):
         file_path = os.path.join(input_dir, unique_filename)
 
         # 写入加密数据
-        with open(file_path, 'wb') as f:
+        with open(file_path, "wb") as f:
             f.write(encrypted_data)
 
-        return web.json_response({
-            "name": unique_filename,
-            "subfolder": "",
-            "type": "input"
-        })
+        return web.json_response({"name": unique_filename, "subfolder": "", "type": "input"})
 
     except Exception as e:
         print(f"Error uploading encrypted image: {e}")
@@ -148,7 +147,7 @@ async def upload_encrypted_image(request):
 
 @PromptServer.instance.routes.get("/cryptio/view_encrypted")
 async def view_encrypted_image(request):
-    """获取加密图片用于前端预览（返回加密数据，由前端解密）"""
+    """获取加密图片用于前端预览（返回二进制加密数据，由前端解密）"""
     try:
         filename = request.query.get("filename")
         if not filename:
@@ -161,14 +160,13 @@ async def view_encrypted_image(request):
             return web.json_response({"error": "File not found"}, status=404)
 
         # 读取加密文件
-        with open(image_path, 'rb') as f:
+        with open(image_path, "rb") as f:
             encrypted_data = f.read()
 
-        # 返回base64编码的加密数据
-        return web.json_response({
-            "encrypted_data": base64.b64encode(encrypted_data).decode("ascii"),
-            "filename": filename
-        })
+        # 返回二进制数据，使用 Content-Disposition header 传递文件名
+        return web.Response(
+            body=encrypted_data, content_type="application/octet-stream", headers={"Content-Disposition": f'filename="{filename}"'}
+        )
 
     except Exception as e:
         print(f"Error viewing encrypted image: {e}")

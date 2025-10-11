@@ -407,7 +407,7 @@ async function uploadEncryptedImage(file: File): Promise<any> {
 
 // 加载并解密图片用于预览
 async function loadEncryptedImageForPreview(filename: string): Promise<string> {
-    // 从服务器获取加密数据
+    // 从服务器获取加密数据（二进制格式）
     const response = await fetch(
         `/cryptio/view_encrypted?filename=${encodeURIComponent(filename)}`
     );
@@ -416,12 +416,11 @@ async function loadEncryptedImageForPreview(filename: string): Promise<string> {
         throw new Error(`Failed to load encrypted image: ${response.statusText}`);
     }
 
-    const data = await response.json();
+    // 直接读取二进制数据
+    const encryptedArrayBuffer = await response.arrayBuffer();
+    const encryptedData = new Uint8Array(encryptedArrayBuffer);
 
     // 解密数据
-    const encryptedData = Uint8Array.from(atob(data.encrypted_data), (c) =>
-        c.charCodeAt(0)
-    );
     const decryptedData = await decryptFile(encryptedData);
 
     // 转换为Blob URL
