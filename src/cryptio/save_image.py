@@ -30,6 +30,7 @@ class SaveImageCryptIO:
             "required": {
                 "images": ("IMAGE",),
                 "filename_prefix": ("STRING", {"default": "ComfyUI"}),
+                "auto_download": ("BOOLEAN", {"default": False}),
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
@@ -39,7 +40,7 @@ class SaveImageCryptIO:
     OUTPUT_NODE = True
     CATEGORY = "CryptIO"
 
-    def save_images(self, images, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None):
+    def save_images(self, images, filename_prefix="ComfyUI", auto_download=False, prompt=None, extra_pnginfo=None):
         """
         保存并加密图片
         """
@@ -104,6 +105,7 @@ class PreviewImageCryptIO:
         return {
             "required": {
                 "images": ("IMAGE",),
+                "auto_download": ("BOOLEAN", {"default": False}),
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
         }
@@ -113,7 +115,7 @@ class PreviewImageCryptIO:
     OUTPUT_NODE = True
     CATEGORY = "CryptIO"
 
-    def save_images(self, images, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None):
+    def save_images(self, images, auto_download=False, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None):
         """
         保存并加密图片用于预览
         """

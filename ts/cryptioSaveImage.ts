@@ -211,6 +211,8 @@ app.registerExtension({
 
                 // 处理加密图片
                 if (message?.cryptio_images) {
+                    const autoDownload = this.widgets.find((n: any) => n.name === "auto_download").value
+
                     for (let i = 0; i < message.cryptio_images.length; i++) {
                         const imageInfo = message.cryptio_images[i];
                         if (imageInfo.filename && imageInfo.filename.endsWith(".encrypted")) {
@@ -225,6 +227,20 @@ app.registerExtension({
                                         }
                                         this.imgs[i] = img;
                                         app.rootGraph?.setDirtyCanvas(true, false);
+
+                                        // 如果开启了自动下载
+                                        if (autoDownload) {
+                                            // 创建下载链接
+                                            const a = document.createElement("a");
+                                            a.href = imageUrl;
+                                            // 移除 .encrypted 后缀
+                                            const originalFilename = imageInfo.filename.replace(/\.encrypted$/, "");
+                                            a.download = originalFilename;
+                                            document.body.appendChild(a);
+                                            a.click();
+                                            document.body.removeChild(a);
+                                            console.log(`Auto-downloaded decrypted image: ${originalFilename}`);
+                                        }
                                     };
                                     img.src = imageUrl;
                                 })
