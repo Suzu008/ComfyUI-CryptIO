@@ -405,6 +405,40 @@ async function uploadEncryptedImage(file: File): Promise<any> {
     return await response.json();
 }
 
+// 从文件名中提取MIME类型
+function getMimeTypeFromFilename(filename: string): string {
+    const baseFilename = filename.replace(/\.encrypted$/, '');
+    // 提取原始扩展名
+    const lastDotIndex = baseFilename.lastIndexOf('.');
+    if (lastDotIndex === -1) {
+        // 如果没有扩展名，默认返回image/png
+        return 'image/png';
+    }
+    
+    const extension = baseFilename.substring(lastDotIndex + 1).toLowerCase();
+    
+    // 扩展名到MIME类型的映射
+    const mimeTypes: { [key: string]: string } = {
+        // 图片格式
+        'jpg': 'image/jpeg',
+        'jpeg': 'image/jpeg',
+        'png': 'image/png',
+        'gif': 'image/gif',
+        'webp': 'image/webp',
+        'bmp': 'image/bmp',
+        'svg': 'image/svg+xml',
+        'ico': 'image/x-icon',
+        'tiff': 'image/tiff',
+        'tif': 'image/tiff',
+        // 视频格式
+        'mp4': 'video/mp4',
+        'webm': 'video/webm',
+        'mkv': 'video/x-matroska'
+    };
+    
+    return mimeTypes[extension] || 'image/png'; // 默认返回image/png
+}
+
 // 加载并解密图片用于预览
 async function loadEncryptedImageForPreview(filename: string): Promise<string> {
     // 从服务器获取加密数据（二进制格式）
@@ -424,7 +458,9 @@ async function loadEncryptedImageForPreview(filename: string): Promise<string> {
     const decryptedData = await decryptFile(encryptedData);
 
     // 转换为Blob URL
-    const blob = new Blob([new Uint8Array(decryptedData)]);
+    const blob = new Blob([new Uint8Array(decryptedData)], {
+        type: getMimeTypeFromFilename(filename),
+    });
     return URL.createObjectURL(blob);
 }
 
