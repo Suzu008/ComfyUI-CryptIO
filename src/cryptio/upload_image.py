@@ -5,8 +5,8 @@ import torch
 from PIL import Image, ImageSequence, ImageOps
 from .utils import _key_manager
 from .utils.crypto_utils import decrypt_data_hybrid
-import folder_paths
-import node_helpers
+import folder_paths  # pyright: ignore[reportMissingImports]
+import node_helpers  # pyright: ignore[reportMissingImports]
 
 
 class UploadImageCryptIO:
