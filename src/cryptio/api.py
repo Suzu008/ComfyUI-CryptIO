@@ -1,5 +1,6 @@
 import os
-import uuid
+import string
+import secrets
 import json
 import base64
 from aiohttp import web
@@ -111,12 +112,29 @@ async def upload_encrypted_image(request):
         if not encrypted_data:
             return web.json_response({"error": "No image data received"}, status=400)
 
-        # 生成唯一的加密文件名
-        file_ext = os.path.splitext(original_filename)[1] if original_filename else ".enc"
-        unique_filename = f"cryptio_{uuid.uuid4().hex}{file_ext}.encrypted"
+        # 生成唯一的加密文件名，保留原始文件名并追加随机字符串
+        input_dir = folder_paths.get_input_directory()
+
+        safe_original = os.path.basename(original_filename) if original_filename else "cryptio"
+        if safe_original.lower().endswith(".encrypted"):
+            safe_original = safe_original[:-len(".encrypted")]
+
+        base_name, file_ext = os.path.splitext(safe_original)
+
+        base_name = base_name.strip().replace(" ", "_") or "cryptio"
+        file_ext = file_ext or ".enc"
+
+        charset = string.ascii_lowercase + string.digits
+
+        def build_filename() -> str:
+            random_suffix = ''.join(secrets.choice(charset) for _ in range(6))
+            return f"{base_name}_{random_suffix}{file_ext}.encrypted"
+
+        unique_filename = build_filename()
+        while os.path.exists(os.path.join(input_dir, unique_filename)):
+            unique_filename = build_filename()
 
         # 保存到 input 目录
-        input_dir = folder_paths.get_input_directory()
         file_path = os.path.join(input_dir, unique_filename)
 
         # 写入加密数据
