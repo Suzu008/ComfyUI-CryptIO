@@ -1,8 +1,6 @@
 import base64
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.backends import default_backend
-from .keys import _get_keys
+from .utils import _key_manager
+from .utils.crypto_utils import decrypt_data_hybrid
 
 
 class ServerDecrypt:
@@ -27,24 +25,14 @@ class ServerDecrypt:
     CATEGORY = "CryptIO"
 
     def decrypt(self, encrypted_text):
-        """使用私钥解密文本（私钥从缓存加载）"""
+        """使用私钥解密文本（支持混合加密格式）"""
         try:
             if encrypted_text.startswith("ENCRYPTED:"):
                 encrypted_bytes = base64.b64decode(encrypted_text[10:])
 
-                private_pem = _get_keys().get("server_private_key")
-                private_key = serialization.load_pem_private_key(private_pem, password=None, backend=default_backend())
-
-                decrypted_bytes = private_key.decrypt(
-                    encrypted_bytes,
-                    padding.OAEP(
-                        mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                        algorithm=hashes.SHA256(),
-                        label=None,
-                    ),
-                )
-
-                decrypted_text = decrypted_bytes.decode("utf-8")
+                # 使用混合解密
+                decrypted_data = decrypt_data_hybrid(encrypted_bytes, _key_manager.server_private_key)
+                decrypted_text = decrypted_data.decode("utf-8")
                 return (decrypted_text,)
             else:
                 return (encrypted_text,)

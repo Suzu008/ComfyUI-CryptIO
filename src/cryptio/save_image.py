@@ -5,12 +5,10 @@ import numpy as np
 import torch
 from PIL import Image
 from PIL.PngImagePlugin import PngInfo
-import folder_paths
-from .keys import _get_keys
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-from cryptography.hazmat.backends import default_backend
+
+import folder_paths # pyright: ignore[reportMissingImports]
+from .utils import _key_manager
+from .utils.crypto_utils import encrypt_data_hybrid
 
 
 class SaveImageCryptIO:
@@ -168,36 +166,8 @@ def encrypt_data(data: bytes) -> bytes:
     """
     使用混合加密方案加密数据（使用客户端公钥加密）
     """
-    # 1. 生成随机 AES 密钥和 IV
-    aes_key = os.urandom(32)  # 256-bit key
-    iv = os.urandom(12)  # 96-bit IV for GCM
-    # 2. 使用 AES-GCM 加密数据
-    cipher = Cipher(algorithms.AES(aes_key), modes.GCM(iv), backend=default_backend())
-    encryptor = cipher.encryptor()
-    encrypted_data = encryptor.update(data) + encryptor.finalize()
-    tag = encryptor.tag  # type: ignore # 获取认证标签
-    # 3. 使用客户端公钥加密 AES 密钥（这样只有客户端能解密）
-    client_public_pem = _get_keys().get("client_public_key")
-    if not client_public_pem:
+    # 使用客户端公钥加密（这样只有客户端能解密）
+    if not _key_manager.client_public_key:
         raise ValueError("Client public key not found. Please upload an image first to exchange keys.")
-    public_key = serialization.load_pem_public_key(client_public_pem, backend=default_backend())  # type: ignore
-    encrypted_aes_key = public_key.encrypt(  # type: ignore
-        aes_key,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None,
-        ),
-    )
-    # 4. 组合数据：[加密的AES密钥长度(4字节)] + [加密的AES密钥] + [IV长度(4字节)] + [IV] + [加密的数据] + [认证标签]
-    encrypted_aes_key_length = len(encrypted_aes_key).to_bytes(4, byteorder="big")
-    iv_length = len(iv).to_bytes(4, byteorder="big")
-    combined = (
-        encrypted_aes_key_length
-        + encrypted_aes_key
-        + iv_length
-        + iv
-        + encrypted_data
-        + tag  # GCM认证标签附加在末尾
-    )
-    return combined
+
+    return encrypt_data_hybrid(data, _key_manager.client_public_key)

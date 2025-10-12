@@ -1,13 +1,10 @@
 import os
-import base64
 import hashlib
 import numpy as np
 import torch
 from PIL import Image, ImageSequence, ImageOps
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import serialization, hashes
-from cryptography.hazmat.backends import default_backend
-from .keys import _get_keys
+from .utils import _key_manager
+from .utils.crypto_utils import decrypt_data_hybrid
 import folder_paths
 import node_helpers
 
@@ -50,55 +47,8 @@ class UploadImageCryptIO:
                 with open(image_path, "rb") as f:
                     encrypted_combined = f.read()
 
-                # 解析组合数据
-                offset = 0
-
-                # 1. 读取加密的AES密钥长度
-                encrypted_aes_key_length = int.from_bytes(encrypted_combined[offset : offset + 4], byteorder="big")
-                offset += 4
-
-                # 2. 读取加密的AES密钥
-                encrypted_aes_key = encrypted_combined[offset : offset + encrypted_aes_key_length]
-                offset += encrypted_aes_key_length
-
-                # 3. 读取IV长度
-                iv_length = int.from_bytes(encrypted_combined[offset : offset + 4], byteorder="big")
-                offset += 4
-
-                # 4. 读取IV
-                iv = encrypted_combined[offset : offset + iv_length]
-                offset += iv_length
-
-                # 5. 读取加密的数据（包含认证标签）
-                encrypted_data_with_tag = encrypted_combined[offset:]
-
-                # 6. 使用RSA私钥解密AES密钥
-                private_pem = _get_keys().get("server_private_key")
-                private_key = serialization.load_pem_private_key(private_pem, password=None, backend=default_backend())  # type: ignore
-
-                aes_key_bytes = private_key.decrypt(  # type: ignore
-                    encrypted_aes_key,
-                    padding.OAEP(
-                        mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                        algorithm=hashes.SHA256(),
-                        label=None,
-                    ),
-                )
-
-                # 7. 使用AES密钥解密图片数据
-                from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-
-                # GCM模式：Web Crypto API将16字节的认证标签附加在密文末尾
-                # 需要分离出认证标签和密文
-                tag_length = 16
-                encrypted_data = encrypted_data_with_tag[:-tag_length]
-                tag = encrypted_data_with_tag[-tag_length:]
-
-                cipher = Cipher(algorithms.AES(aes_key_bytes), modes.GCM(iv, tag), backend=default_backend())
-                decryptor = cipher.decryptor()
-
-                # 解密数据（认证标签已在cipher初始化时提供）
-                decrypted_data = decryptor.update(encrypted_data) + decryptor.finalize()
+                # 使用服务端私钥解密（混合加密）
+                decrypted_data = decrypt_data_hybrid(encrypted_combined, _key_manager.server_private_key)
 
                 # 从字节数据创建图片
                 from io import BytesIO

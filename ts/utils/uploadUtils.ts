@@ -15,7 +15,7 @@ import { loadEncryptedImageFromFilename } from "./imageLoader.js";
 export async function uploadEncryptedImage(file: File): Promise<any> {
     console.log("Encrypting and uploading image:", file.name);
 
-    // 加密文件（使用服务端公钥，如果文件已经加密则直接读取）
+    // 加密文件（使用服务端公钥，如果文件已经使用服务端公钥加密则直接读取）
     const encryptedData = file?.name?.endsWith(".encrypted")
         ? new Uint8Array(await file.arrayBuffer())
         : await encryptFileWithServerKey(file);

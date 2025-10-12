@@ -1,4 +1,4 @@
-from .keys import _ensure_keys_exist, _get_keys
+from .utils import _key_manager
 
 
 class KeyGenerator:
@@ -7,7 +7,8 @@ class KeyGenerator:
     """
 
     def __init__(self):
-        _ensure_keys_exist()
+        # 密钥会在首次访问 _key_manager 时自动生成
+        pass
 
     @classmethod
     def INPUT_TYPES(s):
@@ -18,11 +19,7 @@ class KeyGenerator:
     FUNCTION = "generate"
     CATEGORY = "CryptIO"
 
-    def generate_keys_if_not_exist(self):
-        """兼容旧接口：确保密钥存在（现使用 JSON 存储）。"""
-        _ensure_keys_exist()
-
     def generate(self):
         """返回公钥（使用缓存避免频繁 IO）"""
-        public_key = _get_keys()["server_public_key"].decode("utf-8")
+        public_key = _key_manager.server_public_key_pem.decode("utf-8")
         return (public_key,)

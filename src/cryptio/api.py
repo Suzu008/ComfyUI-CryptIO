@@ -3,11 +3,15 @@ import uuid
 import json
 import base64
 from aiohttp import web
-from server import PromptServer
-from .keys import _get_keys, update_client_public_key
-import folder_paths
-from cryptography.hazmat.primitives.asymmetric import padding
-from cryptography.hazmat.primitives import serialization, hashes
+from server import PromptServer  # pyright: ignore[reportMissingImports]
+import folder_paths  # pyright: ignore[reportMissingImports]
+from .utils import _key_manager
+from .utils.crypto_utils import (
+    encrypt_data_with_public_key,
+    generate_aes_key_and_iv,
+    encrypt_with_aes_cbc,
+)
+from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.backends import default_backend
 
 
@@ -29,55 +33,37 @@ async def exchange_keys(request):
 
         # 保存客户端公钥
         client_public_key_bytes = client_public_key_pem.encode("utf-8")
-        update_client_public_key(client_public_key_bytes)
+        _key_manager.update_client_key(client_public_key_bytes)
 
-        # 获取服务端密钥
-        keys = _get_keys()
-        server_public_key = keys.get("server_public_key")
-        server_private_key = keys.get("server_private_key")
+        # 获取服务端密钥 PEM 格式
+        server_public_key_pem = _key_manager.server_public_key_pem
+        server_private_key_pem = _key_manager.server_private_key_pem
 
-        if not server_public_key or not server_private_key:
+        if not server_public_key_pem or not server_private_key_pem:
             return web.json_response({"error": "Server keys not found"}, status=500)
 
         # 使用客户端公钥加密服务端密钥
-        client_public_key = serialization.load_pem_public_key(client_public_key_bytes, backend=default_backend())
+        client_public_key = serialization.load_pem_public_key(
+            client_public_key_bytes, backend=default_backend()
+        )
 
         # 准备要加密的数据（服务端公钥和私钥）
         keys_data = json.dumps(
             {
-                "server_public_key": server_public_key.decode("utf-8"),
-                "server_private_key": server_private_key.decode("utf-8"),
+                "server_public_key": server_public_key_pem.decode("utf-8"),
+                "server_private_key": server_private_key_pem.decode("utf-8"),
             }
         )
 
-        # 由于RSA加密有大小限制，使用混合加密方案
-        # 1. 生成随机AES密钥
-        from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
-        from cryptography.hazmat.primitives import padding as sym_padding
-        import secrets
-
-        aes_key = secrets.token_bytes(32)  # 256-bit AES key
-        iv = secrets.token_bytes(16)  # 128-bit IV
+        # 由于RSA加密有大小限制，使用混合加密方案（AES-CBC + RSA-OAEP）
+        # 1. 生成随机AES密钥和IV
+        aes_key, iv = generate_aes_key_and_iv()
 
         # 2. 使用AES加密数据
-        cipher = Cipher(algorithms.AES(aes_key), modes.CBC(iv), backend=default_backend())
-        encryptor = cipher.encryptor()
-
-        # PKCS7 padding
-        padder = sym_padding.PKCS7(128).padder()
-        padded_data = padder.update(keys_data.encode("utf-8")) + padder.finalize()
-
-        encrypted_data = encryptor.update(padded_data) + encryptor.finalize()
+        encrypted_data = encrypt_with_aes_cbc(keys_data.encode("utf-8"), aes_key, iv)
 
         # 3. 使用RSA加密AES密钥
-        encrypted_aes_key = client_public_key.encrypt(
-            aes_key,
-            padding.OAEP(
-                mgf=padding.MGF1(algorithm=hashes.SHA256()),
-                algorithm=hashes.SHA256(),
-                label=None,
-            ),
-        )
+        encrypted_aes_key = encrypt_data_with_public_key(aes_key, client_public_key)
 
         # 4. 返回加密后的数据
         return web.json_response(
@@ -99,10 +85,9 @@ async def exchange_keys(request):
 @PromptServer.instance.routes.get("/cryptio/public_key")
 async def get_public_key(request):
     """兼容旧的公钥获取接口（不加密传输）"""
-    keys = _get_keys()
-    pub = keys.get("server_public_key")
-    if pub:
-        return web.json_response({"public_key": pub.decode("utf-8")})
+    pub_pem = _key_manager.server_public_key_pem
+    if pub_pem:
+        return web.json_response({"public_key": pub_pem.decode("utf-8")})
     else:
         return web.json_response({"error": "Public key not found"}, status=404)
 
