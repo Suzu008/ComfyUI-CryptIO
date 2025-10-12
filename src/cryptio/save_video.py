@@ -1,7 +1,6 @@
 import os
 import random
-import json
-import tempfile
+from io import BytesIO
 import folder_paths  # pyright: ignore[reportMissingImports]
 from .utils import _key_manager
 from .utils.crypto_utils import encrypt_data_hybrid
@@ -45,19 +44,20 @@ class SaveVideoCryptIO(io.ComfyNode):
                 filename_prefix, folder_paths.get_output_directory(), width, height
             )
 
-            # Save video to temporary file first
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4", dir=folder_paths.get_temp_directory())
-            temp_file.close()
+            # Prepare workflow metadata
+            metadata = None
+            if cls.hidden.extra_pnginfo is not None or cls.hidden.prompt is not None:
+                metadata = {}
+                if cls.hidden.extra_pnginfo is not None:
+                    metadata.update(cls.hidden.extra_pnginfo)
+                if cls.hidden.prompt is not None:
+                    metadata["prompt"] = cls.hidden.prompt
 
-            # Save video using VideoInput's save_to method
-            video.save_to(temp_file.name, format="mp4", codec="auto")
-
-            # Read the saved video file
-            with open(temp_file.name, "rb") as f:
-                video_data = f.read()
-
-            # Clean up temporary file
-            os.unlink(temp_file.name)
+            # Save video to in-memory buffer to avoid writing plaintext to disk
+            buffer = BytesIO()
+            video.save_to(buffer, format="mp4", codec="auto", metadata=metadata)
+            video_data = buffer.getvalue()
+            buffer.close()
 
             # Encrypt video data using client public key
             if not _key_manager.client_public_key:
@@ -71,20 +71,6 @@ class SaveVideoCryptIO(io.ComfyNode):
 
             with open(encrypted_path, "wb") as f:
                 f.write(encrypted_data)
-
-            # Save metadata to separate JSON file
-            if cls.hidden.prompt is not None or cls.hidden.extra_pnginfo is not None:
-                metadata = {}
-                if cls.hidden.prompt is not None:
-                    metadata["prompt"] = cls.hidden.prompt
-                if cls.hidden.extra_pnginfo is not None:
-                    metadata.update(cls.hidden.extra_pnginfo)
-
-                metadata_file = f"{filename}_{counter:05}_.json"
-                metadata_path = os.path.join(full_output_folder, metadata_file)
-
-                with open(metadata_path, "w", encoding="utf-8") as f:
-                    json.dump(metadata, f, indent=2, ensure_ascii=False)
 
             # Return UI with encrypted video info
             results = [{"filename": file, "subfolder": subfolder, "type": "output", "format": "video/mp4"}]
@@ -135,19 +121,20 @@ class PreviewVideoCryptIO(io.ComfyNode):
                 filename_prefix, folder_paths.get_temp_directory(), width, height
             )
 
-            # Save video to temporary file first
-            temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4", dir=folder_paths.get_temp_directory())
-            temp_file.close()
+            # Prepare workflow metadata
+            metadata = None
+            if cls.hidden.extra_pnginfo is not None or cls.hidden.prompt is not None:
+                metadata = {}
+                if cls.hidden.extra_pnginfo is not None:
+                    metadata.update(cls.hidden.extra_pnginfo)
+                if cls.hidden.prompt is not None:
+                    metadata["prompt"] = cls.hidden.prompt
 
-            # Save video using VideoInput's save_to method
-            video.save_to(temp_file.name, format="mp4", codec="auto")
-
-            # Read the saved video file
-            with open(temp_file.name, "rb") as f:
-                video_data = f.read()
-
-            # Clean up temporary file
-            os.unlink(temp_file.name)
+            # Save video to in-memory buffer to avoid writing plaintext to disk
+            buffer = BytesIO()
+            video.save_to(buffer, format="mp4", codec="auto", metadata=metadata)
+            video_data = buffer.getvalue()
+            buffer.close()
 
             # Encrypt video data using client public key
             if not _key_manager.client_public_key:
