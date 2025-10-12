@@ -32,7 +32,8 @@ async function encryptData(data: Uint8Array, publicKeyPem: string): Promise<Uint
             iv: iv,
         },
         aesKey,
-        data
+        // @ts-ignore
+        data 
     );
 
     // 4. 导出 AES 密钥

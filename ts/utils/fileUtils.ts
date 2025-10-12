@@ -35,7 +35,12 @@ export function getMimeTypeFromFilename(filename: string): string {
         // 视频格式
         'mp4': 'video/mp4',
         'webm': 'video/webm',
-        'mkv': 'video/x-matroska'
+        'mkv': 'video/x-matroska',
+        'avi': 'video/x-msvideo',
+        'mov': 'video/quicktime',
+        'flv': 'video/x-flv',
+        'wmv': 'video/x-ms-wmv',
+        'm4v': 'video/x-m4v'
     };
 
     return mimeTypes[extension] || 'image/png'; // 默认返回image/png
