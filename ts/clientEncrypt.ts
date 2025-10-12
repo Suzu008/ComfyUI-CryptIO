@@ -7,6 +7,8 @@ import type {
     ComfyApi,
     ComfyNodeDef,
 } from "@comfyorg/comfyui-frontend-types";
+import { encryptDataWithServerKey, encryptFileWithServerKey } from "./utils/cryptoUtils.js";
+import { bytesToBase64 } from "./utils/base64Utils.js";
 const app: ComfyApp = rawApp;
 const api: ComfyApi = rawApi;
 
@@ -46,66 +48,21 @@ async function getPublicKey(): Promise<string | null> {
 
 // 使用公钥加密文本
 async function encryptText(
-    text: string,
-    publicKey?: string
+    text: string
 ): Promise<string> {
-    publicKey ??= await getPublicKey() ?? undefined;
-    if (!publicKey) {
-        throw new Error(
-            "Failed to get public key for encryption"
-        );
-    }
     try {
-        // 将PEM格式的公钥转换为CryptoKey对象
-        const pemHeader = "-----BEGIN PUBLIC KEY-----";
-        const pemFooter = "-----END PUBLIC KEY-----";
-        const pemContents = publicKey
-            .substring(
-                publicKey.indexOf(pemHeader) + pemHeader.length,
-                publicKey.indexOf(pemFooter)
-            )
-            .replace(/\s/g, "");
-
-        // 解码Base64
-        const binaryDer = window.atob(pemContents);
-        const binaryDerArray = new Uint8Array(binaryDer.length);
-        for (let i = 0; i < binaryDer.length; i++) {
-            binaryDerArray[i] = binaryDer.charCodeAt(i);
-        }
-
-        // 导入公钥
-        const cryptoKey = await window.crypto.subtle.importKey(
-            "spki",
-            binaryDerArray,
-            {
-                name: "RSA-OAEP",
-                hash: "SHA-256",
-            },
-            false,
-            ["encrypt"]
-        );
-
-        // 加密文本
-        const encoder = new TextEncoder();
-        const data = encoder.encode(text);
-        const encrypted = await window.crypto.subtle.encrypt(
-            {
-                name: "RSA-OAEP",
-            },
-            cryptoKey,
-            data
+        const encrypted = await encryptDataWithServerKey(
+            new TextEncoder().encode(text)
         );
 
         // 转换为Base64
-        const encryptedBase64 = btoa(
-            String.fromCharCode(...new Uint8Array(encrypted))
-        );
+        const encryptedBase64 = bytesToBase64(encrypted);
 
         // 添加前缀标识这是加密数据
         return "ENCRYPTED:" + encryptedBase64;
     } catch (error) {
         console.error("Encryption error:", error);
-        return text; // 加密失败时返回原文本
+        throw error;
     }
 }
 
@@ -137,9 +94,6 @@ app.registerExtension({
                         if (rawWidget.value) return textWidget.value;
 
                         let prompt = "";
-
-
-
 
                         const encryptedText = await encryptText(
                             textWidget.value

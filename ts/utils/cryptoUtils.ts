@@ -71,12 +71,14 @@ async function encryptData(data: Uint8Array, publicKeyPem: string): Promise<Uint
  * @returns 加密后的数据
  */
 export async function encryptFileWithServerKey(file: File): Promise<Uint8Array> {
-    const serverKeys = await getServerKeysWithExchange();
-
     // 读取文件内容
     const arrayBuffer = await file.arrayBuffer();
     const data = new Uint8Array(arrayBuffer);
+    return await encryptDataWithServerKey(data);
+}
 
+export async function encryptDataWithServerKey(data: Uint8Array): Promise<Uint8Array> {
+    const serverKeys = await getServerKeysWithExchange();
     return await encryptData(data, serverKeys.publicKey);
 }
 
@@ -167,7 +169,7 @@ async function decryptData(encryptedData: Uint8Array, privateKeyPem: string): Pr
  * @param encryptedData 加密的数据
  * @returns 解密后的数据
  */
-export async function decryptFileWithServerKey(encryptedData: Uint8Array): Promise<Uint8Array> {
+export async function decryptDataWithServerKey(encryptedData: Uint8Array): Promise<Uint8Array> {
     const serverKeys = await getServerKeysWithExchange();
     return await decryptData(encryptedData, serverKeys.privateKey);
 }

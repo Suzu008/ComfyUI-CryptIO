@@ -4,7 +4,7 @@
  */
 
 import type { ComfyApi } from "@comfyorg/comfyui-frontend-types";
-import { decryptFileWithServerKey, decryptFileWithClientKey } from "./cryptoUtils.js";
+import { decryptDataWithServerKey, decryptFileWithClientKey } from "./cryptoUtils.js";
 import { getMimeTypeFromFilename } from "./fileUtils.js";
 
 export interface ImageLoadParams {
@@ -33,7 +33,7 @@ export async function loadEncryptedImageFromFilename(filename: string): Promise<
     const encryptedData = new Uint8Array(encryptedArrayBuffer);
 
     // 使用服务端私钥解密（UploadImage场景）
-    const decryptedData = await decryptFileWithServerKey(encryptedData);
+    const decryptedData = await decryptDataWithServerKey(encryptedData);
 
     // 转换为Blob URL
     const blob = new Blob([new Uint8Array(decryptedData)], {
