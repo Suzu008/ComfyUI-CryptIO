@@ -16,7 +16,7 @@ class TextEncrypt:
         return {
             "required": {
                 "text": ("STRING", {"multiline": True, "default": "要加密的文本"}),
-                "no encrypt": ("BOOLEAN", {"default": False}),
+                "encrypted": ("BOOLEAN", {"default": False}),
             },
         }
 
