@@ -32,7 +32,7 @@ class UploadImageCryptIO:
     RETURN_TYPES = ("IMAGE", "MASK")
     RETURN_NAMES = ("image", "mask")
     FUNCTION = "load_image"
-    CATEGORY = "CryptIO"
+    CATEGORY = "CryptIO🔒"
 
     def load_image(self, image):
         """

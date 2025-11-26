@@ -29,8 +29,8 @@ class UploadVideoCryptIO(io.ComfyNode):
 
         return io.Schema(
             node_id="UploadVideoCryptIO",
-            display_name="Upload Video CryptIO🔒",
-            category="CryptIO",
+            display_name="Upload Video 🔒",
+            category="CryptIO🔒",
             description="Upload and decrypt video files encrypted with server public key",
             inputs=[
                 io.Combo.Input("video", options=all_files, tooltip="Select an encrypted video file to upload and decrypt"),

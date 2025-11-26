@@ -36,7 +36,7 @@ class SaveImageCryptIO:
     RETURN_TYPES = ()
     FUNCTION = "save_images"
     OUTPUT_NODE = True
-    CATEGORY = "CryptIO"
+    CATEGORY = "CryptIO🔒"
 
     def save_images(self, images, filename_prefix="ComfyUI", auto_download=False, prompt=None, extra_pnginfo=None):
         """
@@ -111,7 +111,7 @@ class PreviewImageCryptIO:
     RETURN_TYPES = ()
     FUNCTION = "save_images"
     OUTPUT_NODE = True
-    CATEGORY = "CryptIO"
+    CATEGORY = "CryptIO🔒"
 
     def save_images(self, images, auto_download=False, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None):
         """

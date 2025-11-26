@@ -16,14 +16,14 @@ class TextEncrypt:
         return {
             "required": {
                 "text": ("STRING", {"multiline": True, "default": "要加密的文本"}),
-                "encrypted": ("BOOLEAN", {"default": False}),
+                "no encrypt": ("BOOLEAN", {"default": False}),
             },
         }
 
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("text", "encrypted_text")
     FUNCTION = "crypt"
-    CATEGORY = "CryptIO"
+    CATEGORY = "CryptIO🔒"
 
     def crypt(self, text: str, encrypted):
         """使用公钥加密文本
@@ -64,7 +64,7 @@ class TextDecrypt:
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("decrypted_text",)
     FUNCTION = "decrypt"
-    CATEGORY = "CryptIO"
+    CATEGORY = "CryptIO🔒"
 
     def decrypt(self, encrypted_text):
         """使用私钥解密文本（支持混合加密格式）"""

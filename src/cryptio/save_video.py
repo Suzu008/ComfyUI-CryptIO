@@ -17,8 +17,8 @@ class SaveVideoCryptIO(io.ComfyNode):
     def define_schema(cls):
         return io.Schema(
             node_id="SaveVideoCryptIO",
-            display_name="Save Video CryptIO🔒",
-            category="CryptIO",
+            display_name="Save Video 🔒",
+            category="CryptIO🔒",
             description="Encrypt and save videos to the output directory",
             inputs=[
                 io.Video.Input("video", tooltip="The video to encrypt and save"),
@@ -91,8 +91,8 @@ class PreviewVideoCryptIO(io.ComfyNode):
     def define_schema(cls):
         return io.Schema(
             node_id="PreviewVideoCryptIO",
-            display_name="Preview Video CryptIO🔒",
-            category="CryptIO",
+            display_name="Preview Video 🔒",
+            category="CryptIO🔒",
             description="Encrypt and preview videos (saved to temp directory)",
             inputs=[
                 io.Video.Input("video", tooltip="The video to encrypt and preview"),

@@ -145,9 +145,8 @@ app.registerExtension({
             const res = await graphToPrompt.apply(this, args);
             for (const nodeId in res.workflow?.nodes) {
                 const node = res.workflow.nodes[nodeId];
-                if (node.type === "TextEncrypt" && node.widgets_values[1] === false) {
+                if (node.type === "TextEncrypt") {
                     node.widgets_values[0] = await encryptText(node.widgets_values[0]);
-                    node.widgets_values[1] = true;
                 }
             }
             return res;
