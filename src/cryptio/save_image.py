@@ -28,6 +28,8 @@ class SaveImageCryptIO:
             "required": {
                 "images": ("IMAGE",),
                 "filename_prefix": ("STRING", {"default": "ComfyUI"}),
+                "format": (["PNG", "JPG", "WEBP", "AVIF"],),
+                "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
                 "auto_download": ("BOOLEAN", {"default": False}),
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
@@ -38,7 +40,7 @@ class SaveImageCryptIO:
     OUTPUT_NODE = True
     CATEGORY = "CryptIO🔒"
 
-    def save_images(self, images, filename_prefix="ComfyUI", auto_download=False, prompt=None, extra_pnginfo=None):
+    def save_images(self, images, filename_prefix="ComfyUI", format="PNG", quality=95, auto_download=False, prompt=None, extra_pnginfo=None):
         """
         保存并加密图片
         """
@@ -52,9 +54,9 @@ class SaveImageCryptIO:
             i = 255.0 * image.cpu().numpy()
             img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
 
-            # 添加元数据
+            # 添加元数据 (仅PNG支持)
             metadata = None
-            if prompt is not None or extra_pnginfo is not None:
+            if format == "PNG" and (prompt is not None or extra_pnginfo is not None):
                 metadata = PngInfo()
                 if prompt is not None:
                     metadata.add_text("prompt", json.dumps(prompt))
@@ -62,19 +64,31 @@ class SaveImageCryptIO:
                     for x in extra_pnginfo:
                         metadata.add_text(x, json.dumps(extra_pnginfo[x]))
 
-            # 首先保存为PNG到内存
+            # 保存为指定格式到内存
             from io import BytesIO
 
-            png_buffer = BytesIO()
-            img.save(png_buffer, format="PNG", pnginfo=metadata, compress_level=self.compress_level)
-            png_data = png_buffer.getvalue()
+            file_ext = format.lower()
+            if format == "JPG":
+                file_ext = "jpg"
+                format_key = "JPEG"
+            else:
+                format_key = format
 
-            # 加密PNG数据
-            encrypted_data = encrypt_data(png_data)
+            buffer = BytesIO()
+            if format == "PNG":
+                img.save(buffer, format="PNG", pnginfo=metadata, compress_level=self.compress_level)
+            else:
+                # JPG/WEBP/AVIF ignore metadata for now
+                img.save(buffer, format=format_key, quality=quality)
+            
+            image_data = buffer.getvalue()
+
+            # 加密数据
+            encrypted_data = encrypt_data(image_data)
 
             # 保存加密数据到文件
             filename_with_batch_num = filename.replace("%batch_num%", str(batch_number))
-            file = f"{filename_with_batch_num}_{counter:05}_.png.encrypted"
+            file = f"{filename_with_batch_num}_{counter:05}_.{file_ext}.encrypted"
             encrypted_path = os.path.join(full_output_folder, file)
 
             with open(encrypted_path, "wb") as f:
@@ -103,6 +117,8 @@ class PreviewImageCryptIO:
         return {
             "required": {
                 "images": ("IMAGE",),
+                "format": (["PNG", "JPG", "WEBP", "AVIF"],),
+                "quality": ("INT", {"default": 95, "min": 1, "max": 100, "step": 1}),
                 "auto_download": ("BOOLEAN", {"default": False}),
             },
             "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO"},
@@ -113,7 +129,7 @@ class PreviewImageCryptIO:
     OUTPUT_NODE = True
     CATEGORY = "CryptIO🔒"
 
-    def save_images(self, images, auto_download=False, filename_prefix="ComfyUI", prompt=None, extra_pnginfo=None):
+    def save_images(self, images, auto_download=False, filename_prefix="ComfyUI", format="PNG", quality=95, prompt=None, extra_pnginfo=None):
         """
         保存并加密图片用于预览
         """
@@ -127,9 +143,9 @@ class PreviewImageCryptIO:
             i = 255.0 * image.cpu().numpy()
             img = Image.fromarray(np.clip(i, 0, 255).astype(np.uint8))
 
-            # 添加元数据
+            # 添加元数据 (仅PNG支持)
             metadata = None
-            if prompt is not None or extra_pnginfo is not None:
+            if format == "PNG" and (prompt is not None or extra_pnginfo is not None):
                 metadata = PngInfo()
                 if prompt is not None:
                     metadata.add_text("prompt", json.dumps(prompt))
@@ -137,19 +153,30 @@ class PreviewImageCryptIO:
                     for x in extra_pnginfo:
                         metadata.add_text(x, json.dumps(extra_pnginfo[x]))
 
-            # 首先保存为PNG到内存
+            # 保存为指定格式到内存
             from io import BytesIO
 
-            png_buffer = BytesIO()
-            img.save(png_buffer, format="PNG", pnginfo=metadata, compress_level=self.compress_level)
-            png_data = png_buffer.getvalue()
+            file_ext = format.lower()
+            if format == "JPG":
+                file_ext = "jpg"
+                format_key = "JPEG"
+            else:
+                format_key = format
 
-            # 加密PNG数据
-            encrypted_data = encrypt_data(png_data)
+            buffer = BytesIO()
+            if format == "PNG":
+                img.save(buffer, format="PNG", pnginfo=metadata, compress_level=self.compress_level)
+            else:
+                img.save(buffer, format=format_key, quality=quality)
+            
+            image_data = buffer.getvalue()
+
+            # 加密数据
+            encrypted_data = encrypt_data(image_data)
 
             # 保存加密数据到文件
             filename_with_batch_num = filename.replace("%batch_num%", str(batch_number))
-            file = f"{filename_with_batch_num}_{counter:05}_.png.encrypted"
+            file = f"{filename_with_batch_num}_{counter:05}_.{file_ext}.encrypted"
             encrypted_path = os.path.join(full_output_folder, file)
 
             with open(encrypted_path, "wb") as f:

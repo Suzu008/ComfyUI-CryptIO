@@ -32,6 +32,7 @@ export function getMimeTypeFromFilename(filename: string): string {
         'ico': 'image/x-icon',
         'tiff': 'image/tiff',
         'tif': 'image/tiff',
+        'avif': 'image/avif',
         // 视频格式
         'mp4': 'video/mp4',
         'webm': 'video/webm',
