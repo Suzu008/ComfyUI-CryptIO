@@ -33,8 +33,14 @@ class KeyManager:
             return
 
         # 密钥存储路径
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        self._key_dir = os.path.join(base_dir, "keys")
+        try:
+            import folder_paths  # pyright: ignore[reportMissingImports]
+            base_dir = folder_paths.base_path
+            self._key_dir = os.path.join(folder_paths.get_system_user_directory(), "cryptio", "keys")
+        except ImportError:
+            # Fallback if folder_paths is not available (e.g. running standalone)
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            self._key_dir = os.path.join(base_dir, "keys")
         self._key_file = os.path.join(self._key_dir, "keys.json")
         os.makedirs(self._key_dir, exist_ok=True)
 
