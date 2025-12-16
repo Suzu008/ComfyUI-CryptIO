@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "target": "ESNext",
+        "module": "ESNext",
+        "moduleResolution": "node",
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        "noEmit": false,
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "outDir": "../js",
+        "forceConsistentCasingInFileNames": true,
+        "typeRoots": [
+            "./node_modules/@comfyorg/comfyui-frontend-types/dist",
+            "./node_modules/@types"
+        ]
+    },
+    "include": ["**/*.ts"]
+}
