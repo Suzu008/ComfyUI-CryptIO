@@ -4,6 +4,7 @@
  */
 
 import type { ComfyApp } from "@comfyorg/comfyui-frontend-types";
+import type { CryptIONode } from "../types.js";
 import { encryptFileWithServerKey } from "./cryptoUtils.js";
 import { loadEncryptedImageFromFilename } from "./imageLoader.js";
 
@@ -50,7 +51,7 @@ export const uploadEncryptedImage = uploadEncryptedFile;
  * @param file 要上传的文件
  * @param app ComfyUI App实例
  */
-export async function handleFileUpload(node: any, file: File, app: ComfyApp) {
+export async function handleFileUpload(node: CryptIONode, file: File, app: ComfyApp) {
     try {
         // 上传加密图片
         const result = await uploadEncryptedImage(file);
@@ -64,7 +65,9 @@ export async function handleFileUpload(node: any, file: File, app: ComfyApp) {
         }
 
         // 更新预览
-        await node.updatePreview(result.name);
+        if (node.updatePreview) {
+            await node.updatePreview(result.name);
+        }
 
         app.rootGraph?.setDirtyCanvas(true, false);
     } catch (error) {
@@ -79,7 +82,7 @@ export async function handleFileUpload(node: any, file: File, app: ComfyApp) {
  * @returns 预览更新函数
  */
 export function createPreviewUpdateFunction(app: ComfyApp) {
-    return async function (this: any, filename: string) {
+    return async function (this: CryptIONode, filename: string) {
         if (!filename || !filename.endsWith(".encrypted")) {
             return;
         }

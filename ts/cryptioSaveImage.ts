@@ -7,10 +7,11 @@ import type {
     ComfyApi,
     ComfyNodeDef,
 } from "@comfyorg/comfyui-frontend-types";
+import type { CryptIONode, CryptIOApp } from "./types.js";
 
 import { loadEncryptedImageFromParams, downloadDecryptedImage } from "./utils/imageLoader.js";
 
-const app: ComfyApp = rawApp;
+const app: CryptIOApp = rawApp as any;
 const api: ComfyApi = rawApi;
 
 // 注册扩展
@@ -19,12 +20,12 @@ app.registerExtension({
     async beforeRegisterNodeDef(
         nodeType: any,
         nodeData: ComfyNodeDef,
-        app: ComfyApp
+        app: CryptIOApp
     ) {
         if (nodeType.comfyClass === "SaveImageCryptIO" || nodeType.comfyClass === "PreviewImageCryptIO") {
             // 覆盖默认的图片处理
             const onExecuted = nodeType.prototype.onExecuted;
-            nodeType.prototype.onExecuted = function (message: any) {
+            nodeType.prototype.onExecuted = function (this: CryptIONode, message: any) {
                 // 调用原始处理
                 if (onExecuted) {
                     onExecuted.apply(this, arguments);
@@ -48,7 +49,9 @@ app.registerExtension({
                             // 异步加载并解密图片
                             loadEncryptedImageFromParams(api, imageInfo)
                                 .then((imageUrl) => {
-                                    this._cryptioBlobUrls.push(imageUrl);
+                                    if (this._cryptioBlobUrls) {
+                                        this._cryptioBlobUrls.push(imageUrl);
+                                    }
                                     // 更新节点的图片显示
                                     const img = new Image();
                                     img.onload = () => {
@@ -56,7 +59,9 @@ app.registerExtension({
                                             this.imgs = [];
                                         }
                                         this.imgs[i] = img;
-                                        app.rootGraph?.setDirtyCanvas(true, false);
+                                        if (app.rootGraph) {
+                                            app.rootGraph.setDirtyCanvas(true, false);
+                                        }
 
                                         // 如果开启了自动下载
                                         if (autoDownload) {
@@ -76,7 +81,7 @@ app.registerExtension({
 
             // 添加右键菜单支持查看/下载图片
             const getExtraMenuOptions = nodeType.prototype.getExtraMenuOptions;
-            nodeType.prototype.getExtraMenuOptions = function (canvas: any, options: any[]) {
+            nodeType.prototype.getExtraMenuOptions = function (this: CryptIONode, canvas: any, options: any[]) {
                 if (getExtraMenuOptions) {
                     getExtraMenuOptions.apply(this, arguments);
                 }
@@ -86,12 +91,14 @@ app.registerExtension({
                     options.push({
                         content: "下载解密图片",
                         callback: async () => {
-                            for (let i = 0; i < this.imgs.length; i++) {
-                                const img = this.imgs[i];
-                                if (img && img.src) {
+                            if (this.imgs) {
+                                for (let i = 0; i < this.imgs.length; i++) {
+                                    const img = this.imgs[i];
                                     // 获取原始文件名
                                     const filename = this.images?.[i]?.filename || `image_${i}.png.encrypted`;
-                                    downloadDecryptedImage(img.src, filename);
+                                    if (img.src) {
+                                        downloadDecryptedImage(img.src, filename);
+                                    }
                                 }
                             }
                         },
@@ -100,7 +107,7 @@ app.registerExtension({
             };
             // Cleanup blob URLs on node removal
             const onRemoved = nodeType.prototype.onRemoved;
-            nodeType.prototype.onRemoved = function () {
+            nodeType.prototype.onRemoved = function (this: CryptIONode) {
                 if (this._cryptioBlobUrls) {
                     for (const url of this._cryptioBlobUrls) {
                         URL.revokeObjectURL(url);

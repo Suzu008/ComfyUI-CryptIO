@@ -7,6 +7,7 @@ import type {
     ComfyApi,
     ComfyNodeDef,
 } from "@comfyorg/comfyui-frontend-types";
+import type { CryptIONode, VideoPreviewWidget, CryptIOApp } from "./types.js";
 
 import { exchangeKeys } from "./utils/cryptoKeys.js";
 import { loadEncryptedVideoFromFilename } from "./utils/videoLoader.js";
@@ -17,13 +18,13 @@ import {
     clearVideoWidget,
 } from "./utils/videoWidgetUtils.js";
 
-const app: ComfyApp = rawApp;
+const app: CryptIOApp = rawApp as any;
 const api: ComfyApi = rawApi;
 
 /**
  * Load encrypted video from filename and render in widget
  */
-async function updateVideoWidget(widget: any, filename: string) {
+async function updateVideoWidget(widget: VideoPreviewWidget, filename: string) {
     const videoUrl = await loadEncryptedVideoFromFilename(filename);
     await renderVideoInWidget(widget, videoUrl);
 }
@@ -31,7 +32,7 @@ async function updateVideoWidget(widget: any, filename: string) {
 /**
  * Handle video file upload to node
  */
-async function handleVideoUpload(node: any, file: File, app: ComfyApp) {
+async function handleVideoUpload(node: CryptIONode, file: File, app: CryptIOApp) {
     try {
         // Upload encrypted video
         const result = await uploadEncryptedFile(file);
@@ -47,12 +48,14 @@ async function handleVideoUpload(node: any, file: File, app: ComfyApp) {
         // Update preview
         const previewWidget = node.widgets.find(
             (w: any) => w.type === "video-preview"
-        );
+        ) as VideoPreviewWidget;
         if (previewWidget) {
             await updateVideoWidget(previewWidget, result.name);
         }
 
-        app.rootGraph?.setDirtyCanvas(true, false);
+        if (app.rootGraph) {
+            app.rootGraph.setDirtyCanvas(true, false);
+        }
     } catch (error) {
         console.error("Upload error:", error);
         alert("Failed to upload encrypted video: " + error);
@@ -74,12 +77,12 @@ app.registerExtension({
     async beforeRegisterNodeDef(
         nodeType: any,
         nodeData: ComfyNodeDef,
-        app: ComfyApp
+        app: CryptIOApp
     ) {
         if (nodeType.comfyClass === "UploadVideoCryptIO") {
             // Add custom upload widget
             const onNodeCreated = nodeType.prototype.onNodeCreated;
-            nodeType.prototype.onNodeCreated = function (this: any) {
+            nodeType.prototype.onNodeCreated = function (this: CryptIONode) {
                 const r = onNodeCreated?.apply(this, arguments);
 
                 // Remove default upload widget
@@ -183,9 +186,9 @@ app.registerExtension({
 
             // Cleanup on node removal
             const onRemoved = nodeType.prototype.onRemoved;
-            nodeType.prototype.onRemoved = function () {
+            nodeType.prototype.onRemoved = function (this: CryptIONode) {
                 // Clean up video widget
-                const videoWidget = this.widgets?.find((w: any) =>
+                const videoWidget = this.widgets?.find((w: VideoPreviewWidget) =>
                     w.type === "video-preview"
                 );
 

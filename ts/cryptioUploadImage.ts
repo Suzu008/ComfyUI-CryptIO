@@ -7,11 +7,12 @@ import type {
     ComfyApi,
     ComfyNodeDef,
 } from "@comfyorg/comfyui-frontend-types";
+import type { CryptIONode, CryptIOApp } from "./types.js";
 
 import { exchangeKeys } from "./utils/cryptoKeys.js";
 import { handleFileUpload, createPreviewUpdateFunction } from "./utils/uploadUtils.js";
 
-const app: ComfyApp = rawApp;
+const app: CryptIOApp = rawApp as any;
 const api: ComfyApi = rawApi;
 
 // 注册扩展
@@ -29,12 +30,12 @@ app.registerExtension({
     async beforeRegisterNodeDef(
         nodeType: any,
         nodeData: ComfyNodeDef,
-        app: ComfyApp
+        app: CryptIOApp
     ) {
         if (nodeType.comfyClass === "UploadImageCryptIO") {
             // 添加自定义的upload widget
             const onNodeCreated = nodeType.prototype.onNodeCreated;
-            nodeType.prototype.onNodeCreated = function (this: any) {
+            nodeType.prototype.onNodeCreated = function (this: CryptIONode) {
                 const r = onNodeCreated?.apply(this, arguments);
 
                 // 移除默认的upload widget
@@ -54,7 +55,7 @@ app.registerExtension({
                         fileInput.onchange = async () => {
                             if (fileInput.files && fileInput.files.length > 0) {
                                 const file = fileInput.files[0];
-                                await handleFileUpload(this, file, app);
+                                await handleFileUpload(this, file, app as any);
                             }
                             document.body.removeChild(fileInput);
                         };
@@ -65,19 +66,24 @@ app.registerExtension({
                 uploadWidget.label = "choose file to upload";
 
                 // 添加预览更新方法
-                this.updatePreview = createPreviewUpdateFunction(app);
+                this.updatePreview = createPreviewUpdateFunction(app as any);
 
                 // 当image值改变时更新预览
                 const imageWidget = this.widgets.find((w: any) => w.name === "image");
                 if (imageWidget) {
                     const originalCallback = imageWidget.callback;
-                    this.updatePreview(imageWidget.value);
+                    if (this.updatePreview) {
+                        this.updatePreview(imageWidget.value);
+                    }
                     imageWidget.callback = async function (this: any, value: any) {
                         if (originalCallback) {
                             originalCallback.call(this, value);
                         }
                         if (value && value.endsWith(".encrypted")) {
-                            await this.node.updatePreview(value);
+                            const node = this.node as CryptIONode;
+                            if (node.updatePreview) {
+                                await node.updatePreview(value);
+                            }
                         }
                     };
                 }
@@ -115,7 +121,7 @@ app.registerExtension({
                     }
 
                     // 上传文件
-                    await handleFileUpload(this, file, app);
+                    await handleFileUpload(this, file, app as any);
 
                     return true;
                 };
@@ -128,7 +134,7 @@ app.registerExtension({
                             continue
                         }
                         // 上传文件
-                        await handleFileUpload(this, file, app);
+                        await handleFileUpload(this, file, app as any);
                         return true;
 
                     }
@@ -139,7 +145,7 @@ app.registerExtension({
 
             // Cleanup blob URLs on node removal
             const onRemoved = nodeType.prototype.onRemoved;
-            nodeType.prototype.onRemoved = function () {
+            nodeType.prototype.onRemoved = function (this: CryptIONode) {
                 if (this._cryptioPreviewUrl) {
                     URL.revokeObjectURL(this._cryptioPreviewUrl);
                     this._cryptioPreviewUrl = null;

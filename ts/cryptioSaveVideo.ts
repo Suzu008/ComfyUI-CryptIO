@@ -7,6 +7,7 @@ import type {
     ComfyApi,
     ComfyNodeDef,
 } from "@comfyorg/comfyui-frontend-types";
+import type { CryptIONode, VideoPreviewWidget, CryptIOApp } from "./types.js";
 
 import {
     loadEncryptedVideoFromParams,
@@ -18,13 +19,13 @@ import {
     clearVideoWidget,
 } from "./utils/videoWidgetUtils.js";
 
-const app: ComfyApp = rawApp;
+const app: CryptIOApp = rawApp as any;
 const api: ComfyApi = rawApi;
 
 /**
  * Load encrypted video from params and render in widget
  */
-async function updateVideoWidget(widget: any, videoInfo: any): Promise<string> {
+async function updateVideoWidget(widget: VideoPreviewWidget, videoInfo: any): Promise<string> {
     const videoUrl = await loadEncryptedVideoFromParams(api, videoInfo);
     await renderVideoInWidget(widget, videoUrl);
     return videoUrl;
@@ -36,7 +37,7 @@ app.registerExtension({
     async beforeRegisterNodeDef(
         nodeType: any,
         nodeData: ComfyNodeDef,
-        app: ComfyApp
+        app: CryptIOApp
     ) {
         if (nodeType.comfyClass !== "SaveVideoCryptIO" && nodeType.comfyClass !== "PreviewVideoCryptIO") {
             return;
@@ -44,7 +45,7 @@ app.registerExtension({
 
         // Override default video handling
         const onExecuted = nodeType.prototype.onExecuted;
-        nodeType.prototype.onExecuted = async function (message: any) {
+        nodeType.prototype.onExecuted = async function (this: CryptIONode, message: any) {
             // Call original handler
             if (onExecuted) {
                 onExecuted.apply(this, arguments);
@@ -93,7 +94,7 @@ app.registerExtension({
 
         // Add context menu support for view/download videos
         const getExtraMenuOptions = nodeType.prototype.getExtraMenuOptions;
-        nodeType.prototype.getExtraMenuOptions = function (canvas: any, options: any[]) {
+        nodeType.prototype.getExtraMenuOptions = function (this: CryptIONode, canvas: any, options: any[]) {
             if (getExtraMenuOptions) {
                 getExtraMenuOptions.apply(this, arguments);
             }
@@ -119,8 +120,8 @@ app.registerExtension({
 
         // Cleanup on node removal
         const onRemoved = nodeType.prototype.onRemoved;
-        nodeType.prototype.onRemoved = function () {
-            const videoWidgets = this.widgets?.filter((w: any) =>
+        nodeType.prototype.onRemoved = function (this: CryptIONode) {
+            const videoWidgets = this.widgets?.filter((w: VideoPreviewWidget) =>
                 w.type === "video-preview"
             ) || [];
 

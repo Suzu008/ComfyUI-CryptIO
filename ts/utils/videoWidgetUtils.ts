@@ -6,8 +6,9 @@
 //@ts-ignore
 import { app as rawApp } from "../../../scripts/app.js";
 import type { ComfyApp } from "@comfyorg/comfyui-frontend-types";
+import type { CryptIONode, VideoPreviewWidget, CryptIOApp } from "../types.js";
 
-const app: ComfyApp = rawApp;
+const app: CryptIOApp = rawApp as any;
 
 export const DEFAULT_VIDEO_SIZE = 256;
 const MIN_WIDGET_HEIGHT = 64;
@@ -40,7 +41,7 @@ export interface CreateVideoWidgetOptions {
 /**
  * Create a video preview DOM widget on a node.
  */
-export function createVideoWidget(node: any, options: CreateVideoWidgetOptions = {}) {
+export function createVideoWidget(node: CryptIONode, options: CreateVideoWidgetOptions = {}): VideoPreviewWidget {
     const {
         widgetName = "video_preview",
         hidden = false,
@@ -121,7 +122,7 @@ export function createVideoWidget(node: any, options: CreateVideoWidgetOptions =
  * @param widget The video widget to update
  * @param videoUrl The blob URL of the decrypted video
  */
-export function renderVideoInWidget(widget: any, videoUrl: string): Promise<void> {
+export function renderVideoInWidget(widget: VideoPreviewWidget, videoUrl: string): Promise<void> {
     return new Promise((resolve, reject) => {
         const video = document.createElement("video");
         video.controls = true;
@@ -156,7 +157,7 @@ export function renderVideoInWidget(widget: any, videoUrl: string): Promise<void
 /**
  * Clean up a video widget (pause, revoke URL, clear DOM).
  */
-export function clearVideoWidget(widget: any) {
+export function clearVideoWidget(widget: VideoPreviewWidget) {
     if (widget.videoElement) {
         widget.videoElement.pause();
         widget.videoElement.src = "";
