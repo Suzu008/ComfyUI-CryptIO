@@ -152,8 +152,13 @@ export async function importPrivateKeyFromPem(pem: string): Promise<CryptoKey> {
     );
 }
 
+// In-flight promise to deduplicate concurrent exchangeKeys() calls
+let exchangeKeysPromise: Promise<ServerKeys> | null = null;
+
 /**
  * 与服务器交换密钥，使用客户端公钥加密 AES 密钥
+ * Deduplicates concurrent calls: if a key exchange is already in progress,
+ * subsequent calls will await the same promise.
  */
 export async function exchangeKeys(): Promise<ServerKeys> {
     // 检查缓存
@@ -166,6 +171,20 @@ export async function exchangeKeys(): Promise<ServerKeys> {
         }
     }
 
+    // Deduplicate: reuse in-flight promise if one exists
+    if (exchangeKeysPromise) {
+        return exchangeKeysPromise;
+    }
+
+    exchangeKeysPromise = performKeyExchange();
+    try {
+        return await exchangeKeysPromise;
+    } finally {
+        exchangeKeysPromise = null;
+    }
+}
+
+async function performKeyExchange(): Promise<ServerKeys> {
     // 获取客户端密钥对
     const clientKeyPair = await getClientKeyPair();
 
