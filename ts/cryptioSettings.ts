@@ -180,12 +180,21 @@ async function handleServerKeyUpload(event: Event): Promise<void> {
  * Create hidden file input for uploads
  */
 function createFileInput(id: string, onChange: (event: Event) => void): HTMLInputElement {
+    // Remove any existing input with the same id to avoid duplicates
+    const existing = document.getElementById(id);
+    if (existing) {
+        existing.remove();
+    }
+
     const input = document.createElement("input");
     input.type = "file";
     input.id = id;
     input.accept = ".json";
     input.style.display = "none";
-    input.addEventListener("change", onChange);
+    input.addEventListener("change", (event: Event) => {
+        onChange(event);
+        input.remove();
+    });
     document.body.appendChild(input);
     return input;
 }
