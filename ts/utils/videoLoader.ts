@@ -93,35 +93,3 @@ export function downloadDecryptedVideo(blobUrl: string, filename: string): void 
     document.body.removeChild(a);
 }
 
-/**
- * 创建视频预览元素
- * @param videoUrl 视频URL
- * @param width 预览宽度（可选）
- * @param height 预览高度（可选）
- * @returns HTMLVideoElement
- */
-export function createVideoPreviewElement(
-    videoUrl: string,
-    width?: number,
-    height?: number
-): HTMLVideoElement {
-    const video = document.createElement("video");
-    video.src = videoUrl;
-    video.controls = true;
-    video.loop = true;
-    video.muted = true; // 默认静音，避免自动播放时声音打扰
-    video.style.maxWidth = "100%";
-    video.style.maxHeight = "100%";
-
-    if (width) {
-        video.width = width;
-    }
-    if (height) {
-        video.height = height;
-    }
-
-    // 尝试加载视频元数据
-    video.load();
-
-    return video;
-}
