@@ -46,3 +46,19 @@ export function getMimeTypeFromFilename(filename: string): string {
 
     return mimeTypes[extension] || 'image/png'; // 默认返回image/png
 }
+
+/**
+ * Download a decrypted file (image or video) from a blob URL.
+ * Strips the .encrypted suffix from the filename.
+ * @param blobUrl Blob URL of the decrypted data
+ * @param filename Original filename (with .encrypted suffix)
+ */
+export function downloadDecryptedFile(blobUrl: string, filename: string): void {
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    const originalFilename = filename.replace(/\.encrypted$/, "");
+    a.download = originalFilename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}

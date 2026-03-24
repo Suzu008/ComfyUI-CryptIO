@@ -5,7 +5,7 @@
 
 import type { ComfyApi } from "@comfyorg/comfyui-frontend-types";
 import { decryptDataWithServerKey, decryptFileWithClientKey } from "./cryptoUtils.js";
-import { getMimeTypeFromFilename } from "./fileUtils.js";
+import { getMimeTypeFromFilename, downloadDecryptedFile } from "./fileUtils.js";
 
 export interface VideoLoadParams {
     filename: string;
@@ -77,19 +77,6 @@ export async function loadEncryptedVideoFromParams(api: ComfyApi, params: VideoL
     return URL.createObjectURL(blob);
 }
 
-/**
- * 下载解密后的视频
- * @param blobUrl Blob URL
- * @param filename 原始文件名（带 .encrypted 后缀）
- */
-export function downloadDecryptedVideo(blobUrl: string, filename: string): void {
-    const a = document.createElement("a");
-    a.href = blobUrl;
-    // 移除 .encrypted 后缀
-    const originalFilename = filename.replace(/\.encrypted$/, "");
-    a.download = originalFilename;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-}
+/** @deprecated Use downloadDecryptedFile from fileUtils.ts instead */
+export const downloadDecryptedVideo = downloadDecryptedFile;
 

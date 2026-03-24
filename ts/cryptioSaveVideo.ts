@@ -12,136 +12,22 @@ import {
     loadEncryptedVideoFromParams,
     downloadDecryptedVideo
 } from "./utils/videoLoader.js";
+import {
+    createVideoWidget,
+    renderVideoInWidget,
+    clearVideoWidget,
+} from "./utils/videoWidgetUtils.js";
 
 const app: ComfyApp = rawApp;
 const api: ComfyApi = rawApi;
 
-const DEFAULT_VIDEO_SIZE = 256;
-const MIN_WIDGET_HEIGHT = 64;
-
-function fitDimensionsToNodeWidth(
-    width: number,
-    height: number,
-    nodeWidth: number
-) {
-    const aspectRatio = width / height;
-    if (!aspectRatio || Number.isNaN(aspectRatio)) {
-        return {
-            minHeight: DEFAULT_VIDEO_SIZE,
-            minWidth: nodeWidth || DEFAULT_VIDEO_SIZE,
-        };
-    }
-
-    const minWidth = nodeWidth || DEFAULT_VIDEO_SIZE;
-    const minHeight = Math.max(minWidth / aspectRatio, MIN_WIDGET_HEIGHT);
-
-    return { minHeight, minWidth };
-}
-
 /**
- * Create video preview widget
+ * Load encrypted video from params and render in widget
  */
-function createVideoWidget(node: any, videoName: string, videoInfo: any) {
-    let minHeight = DEFAULT_VIDEO_SIZE;
-    let minWidth = node.size?.[0] || DEFAULT_VIDEO_SIZE;
-
-    const container = document.createElement("div");
-    container.classList.add("comfy-img-preview");
-
-    const widget = node.addDOMWidget(
-        videoName,
-        "video-preview",
-        container,
-        {
-            serialize: false,
-            hideOnZoom: false,
-        }
-    );
-
-    widget.computeLayoutSize = () => ({
-        minHeight,
-        minWidth,
-    });
-
-    widget.updateLayout = (videoWidth: number, videoHeight: number) => {
-        const nodeWidth = node.size?.[0] || DEFAULT_VIDEO_SIZE;
-        const dimensions = fitDimensionsToNodeWidth(
-            videoWidth,
-            videoHeight,
-            nodeWidth
-        );
-        minHeight = dimensions.minHeight;
-        minWidth = dimensions.minWidth;
-    };
-
-    widget.element.addEventListener('pointermove', (event: PointerEvent) => {
-        if ((event.buttons & 4) === 4) {
-            app.canvas.processMouseMove(event)
-        }
-    })
-    widget.element.addEventListener('pointerdown', (event: PointerEvent) => {
-        if ((event.buttons & 4) === 4) {
-            app.canvas.processMouseDown(event)
-        }
-    })
-
-
-    widget.element.addEventListener('wheel', (event: WheelEvent) => {
-
-        if (event.ctrlKey) {
-            event.preventDefault()
-            event.stopPropagation()
-            return
-        }
-
-        event.preventDefault()
-        app.canvas.processMouseWheel(event)
-    })
-
-    widget.videoInfo = videoInfo;
-    widget.value = { hidden: false, videoInfo };
-
-    return widget;
-}
-
-/**
- * Update video preview widget with decrypted video
- */
-async function updateVideoWidget(widget: any, videoInfo: any) {
-    try {
-        const videoUrl = await loadEncryptedVideoFromParams(api, videoInfo);
-
-        // Create video element
-        const video = document.createElement("video");
-        video.controls = true;
-        video.loop = true;
-        video.muted = true;
-        video.autoplay = false;
-        video.playsInline = true;
-
-        video.onloadedmetadata = () => {
-            widget.updateLayout?.(video.videoWidth, video.videoHeight);
-            widget.element.hidden = false;
-            widget.element.style.overflow = "hidden";
-
-            // Clear previous content
-            widget.element.replaceChildren();
-
-            // Add new video
-            widget.element.appendChild(video);
-            widget.videoElement = video;
-            widget.videoUrl = videoUrl;
-
-            app.rootGraph?.setDirtyCanvas(true, false);
-        };
-
-        video.src = videoUrl;
-
-        return videoUrl;
-    } catch (error) {
-        console.error("Failed to decrypt video for preview:", error);
-        throw error;
-    }
+async function updateVideoWidget(widget: any, videoInfo: any): Promise<string> {
+    const videoUrl = await loadEncryptedVideoFromParams(api, videoInfo);
+    await renderVideoInWidget(widget, videoUrl);
+    return videoUrl;
 }
 
 // Register extension
@@ -173,6 +59,7 @@ app.registerExtension({
                     w.type === "video-preview"
                 );
                 for (const widget of existingWidgets) {
+                    clearVideoWidget(widget);
                     this.removeWidget(widget);
                 }
 
@@ -181,8 +68,10 @@ app.registerExtension({
                 for (let i = 0; i < message.cryptio_images.length; i++) {
                     const videoInfo = message.cryptio_images[i];
                     if (videoInfo.filename && videoInfo.filename.endsWith(".encrypted")) {
-                        const videoName = `video_${i}`;
-                        const widget = createVideoWidget(this, videoName, videoInfo);
+                        const widget = createVideoWidget(this, {
+                            widgetName: `video_${i}`,
+                            videoInfo,
+                        });
 
                         updatePromises.push(
                             updateVideoWidget(widget, videoInfo)
@@ -231,19 +120,12 @@ app.registerExtension({
         // Cleanup on node removal
         const onRemoved = nodeType.prototype.onRemoved;
         nodeType.prototype.onRemoved = function () {
-            // Clean up video widgets
             const videoWidgets = this.widgets?.filter((w: any) =>
                 w.type === "video-preview"
             ) || [];
 
             for (const widget of videoWidgets) {
-                if (widget.videoElement) {
-                    widget.videoElement.pause();
-                    widget.videoElement.src = "";
-                }
-                if (widget.videoUrl) {
-                    URL.revokeObjectURL(widget.videoUrl);
-                }
+                clearVideoWidget(widget);
             }
 
             if (onRemoved) {

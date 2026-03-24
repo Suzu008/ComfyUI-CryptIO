@@ -8,26 +8,27 @@ import { encryptFileWithServerKey } from "./cryptoUtils.js";
 import { loadEncryptedImageFromFilename } from "./imageLoader.js";
 
 /**
- * 上传加密图片到服务器（使用服务端公钥加密）
- * @param file 要上传的文件
- * @returns 服务器响应
+ * Upload an encrypted file to the server (encrypted with server public key).
+ * Works for both images and videos.
+ * @param file File to upload
+ * @returns Server response
  */
-export async function uploadEncryptedImage(file: File): Promise<any> {
-    console.log("Encrypting and uploading image:", file.name);
+export async function uploadEncryptedFile(file: File): Promise<any> {
+    console.log("Encrypting and uploading file:", file.name);
 
-    // 加密文件（使用服务端公钥，如果文件已经使用服务端公钥加密则直接读取）
+    // Encrypt file (use server public key, or directly read if already encrypted)
     const encryptedData = file?.name?.endsWith(".encrypted")
         ? new Uint8Array(await file.arrayBuffer())
         : await encryptFileWithServerKey(file);
 
-    // 创建FormData
+    // Create FormData
     const formData = new FormData();
     const encryptedBlob = new Blob([encryptedData as BlobPart], {
         type: "application/octet-stream",
     });
     formData.append("image", encryptedBlob, file.name);
 
-    // 上传到服务器
+    // Upload to server
     const response = await fetch("/cryptio/upload_encrypted", {
         method: "POST",
         body: formData,
@@ -39,6 +40,9 @@ export async function uploadEncryptedImage(file: File): Promise<any> {
 
     return await response.json();
 }
+
+/** @deprecated Use uploadEncryptedFile instead */
+export const uploadEncryptedImage = uploadEncryptedFile;
 
 /**
  * 处理文件上传到节点的通用方法
