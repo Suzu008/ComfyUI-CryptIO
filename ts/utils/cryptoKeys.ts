@@ -7,6 +7,8 @@
 export const CLIENT_KEYPAIR_STORAGE_KEY = "cryptio_client_keypair";
 export const SERVER_KEYS_STORAGE_KEY = "cryptio_server_keys";
 
+import { bytesToBase64 } from "./base64Utils.js";
+
 // 密钥接口
 export interface KeyPair {
     publicKey: string;
@@ -39,8 +41,8 @@ export async function generateClientKeyPair(): Promise<KeyPair> {
         "spki",
         keyPair.publicKey
     );
-    const publicKeyBase64 = btoa(
-        String.fromCharCode(...new Uint8Array(publicKeyBuffer))
+    const publicKeyBase64 = bytesToBase64(
+        new Uint8Array(publicKeyBuffer)
     );
     const publicKeyPem =
         "-----BEGIN PUBLIC KEY-----\n" +
@@ -52,8 +54,8 @@ export async function generateClientKeyPair(): Promise<KeyPair> {
         "pkcs8",
         keyPair.privateKey
     );
-    const privateKeyBase64 = btoa(
-        String.fromCharCode(...new Uint8Array(privateKeyBuffer))
+    const privateKeyBase64 = bytesToBase64(
+        new Uint8Array(privateKeyBuffer)
     );
     const privateKeyPem =
         "-----BEGIN PRIVATE KEY-----\n" +
