@@ -136,6 +136,18 @@ app.registerExtension({
 
                 return r;
             };
+
+            // Cleanup blob URLs on node removal
+            const onRemoved = nodeType.prototype.onRemoved;
+            nodeType.prototype.onRemoved = function () {
+                if (this._cryptioPreviewUrl) {
+                    URL.revokeObjectURL(this._cryptioPreviewUrl);
+                    this._cryptioPreviewUrl = null;
+                }
+                if (onRemoved) {
+                    onRemoved.apply(this, arguments);
+                }
+            };
         }
     },
 });

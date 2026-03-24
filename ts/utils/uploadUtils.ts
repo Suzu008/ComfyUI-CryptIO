@@ -81,7 +81,13 @@ export function createPreviewUpdateFunction(app: ComfyApp) {
         }
 
         try {
+            // Revoke previous blob URL to prevent memory leak
+            if (this._cryptioPreviewUrl) {
+                URL.revokeObjectURL(this._cryptioPreviewUrl);
+            }
+
             const imageUrl = await loadEncryptedImageFromFilename(filename);
+            this._cryptioPreviewUrl = imageUrl;
 
             // 更新节点的图片显示
             const img = new Image();

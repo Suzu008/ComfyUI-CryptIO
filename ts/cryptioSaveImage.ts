@@ -34,12 +34,21 @@ app.registerExtension({
                 if (message?.cryptio_images) {
                     const autoDownload = this.widgets.find((n: any) => n.name === "auto_download")?.value;
 
+                    // Revoke previous blob URLs to prevent memory leaks
+                    if (this._cryptioBlobUrls) {
+                        for (const url of this._cryptioBlobUrls) {
+                            URL.revokeObjectURL(url);
+                        }
+                    }
+                    this._cryptioBlobUrls = [] as string[];
+
                     for (let i = 0; i < message.cryptio_images.length; i++) {
                         const imageInfo = message.cryptio_images[i];
                         if (imageInfo.filename && imageInfo.filename.endsWith(".encrypted")) {
                             // 异步加载并解密图片
                             loadEncryptedImageFromParams(api, imageInfo)
                                 .then((imageUrl) => {
+                                    this._cryptioBlobUrls.push(imageUrl);
                                     // 更新节点的图片显示
                                     const img = new Image();
                                     img.onload = () => {
@@ -87,6 +96,19 @@ app.registerExtension({
                             }
                         },
                     });
+                }
+            };
+            // Cleanup blob URLs on node removal
+            const onRemoved = nodeType.prototype.onRemoved;
+            nodeType.prototype.onRemoved = function () {
+                if (this._cryptioBlobUrls) {
+                    for (const url of this._cryptioBlobUrls) {
+                        URL.revokeObjectURL(url);
+                    }
+                    this._cryptioBlobUrls = [];
+                }
+                if (onRemoved) {
+                    onRemoved.apply(this, arguments);
                 }
             };
         }
