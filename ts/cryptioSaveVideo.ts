@@ -176,26 +176,29 @@ app.registerExtension({
                     this.removeWidget(widget);
                 }
 
-                // Create new widgets for each video
+                // Create widgets and decrypt videos in parallel
+                const updatePromises: Promise<void>[] = [];
                 for (let i = 0; i < message.cryptio_images.length; i++) {
                     const videoInfo = message.cryptio_images[i];
                     if (videoInfo.filename && videoInfo.filename.endsWith(".encrypted")) {
                         const videoName = `video_${i}`;
                         const widget = createVideoWidget(this, videoName, videoInfo);
 
-                        try {
-                            const videoUrl = await updateVideoWidget(widget, videoInfo);
-
-                            // If auto-download is enabled
-                            if (autoDownload) {
-                                downloadDecryptedVideo(videoUrl, videoInfo.filename);
-                                console.log(`Auto-downloaded decrypted video: ${videoInfo.filename.replace(/\.encrypted$/, "")}`);
-                            }
-                        } catch (error) {
-                            console.error("Failed to load video:", error);
-                        }
+                        updatePromises.push(
+                            updateVideoWidget(widget, videoInfo)
+                                .then((videoUrl) => {
+                                    if (autoDownload) {
+                                        downloadDecryptedVideo(videoUrl, videoInfo.filename);
+                                        console.log(`Auto-downloaded decrypted video: ${videoInfo.filename.replace(/\.encrypted$/, "")}`);
+                                    }
+                                })
+                                .catch((error) => {
+                                    console.error("Failed to load video:", error);
+                                })
+                        );
                     }
                 }
+                await Promise.allSettled(updatePromises);
             }
         };
 
