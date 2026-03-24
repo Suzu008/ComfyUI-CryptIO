@@ -12,40 +12,6 @@ import { base64ToBytes, bytesToBase64 } from "./utils/base64Utils.js";
 const app: ComfyApp = rawApp;
 const api: ComfyApi = rawApi;
 
-// 密钥存储键名
-const PUBLIC_KEY_STORAGE_KEY = "cryptio_public_key";
-
-// 获取公钥
-async function getPublicKey(): Promise<string | null> {
-    // 先从localStorage获取
-    let publicKey = localStorage.getItem(PUBLIC_KEY_STORAGE_KEY);
-
-    // 如果本地没有，则从服务器获取
-    if (!publicKey) {
-        try {
-            const response = await fetch("/cryptio/public_key");
-            const data = await response.json();
-
-            if (data.public_key) {
-                publicKey = data.public_key;
-                if (publicKey == null) {
-                    throw new Error("publicKey is null");
-                }
-                // 保存到localStorage
-                localStorage.setItem(PUBLIC_KEY_STORAGE_KEY, publicKey);
-            } else {
-                console.error("Failed to get public key:", data.error);
-                return null;
-            }
-        } catch (error) {
-            console.error("Error fetching public key:", error);
-            return null;
-        }
-    }
-
-    return publicKey;
-}
-
 // 使用服务端公钥加密文本
 async function encryptText(
     text: string
