@@ -38,8 +38,11 @@ app.registerExtension({
             nodeType.prototype.onNodeCreated = function (this: CryptIONode) {
                 const r = onNodeCreated?.apply(this, arguments);
 
-                // 移除默认的upload widget
-                this.removeWidgetByName("upload")
+                // Remove default upload widget
+                const uploadWidgetIndex = this.widgets.findIndex(w => w.name === "upload");
+                if (uploadWidgetIndex !== -1) {
+                    this.removeWidget(this.widgets[uploadWidgetIndex]);
+                }
                 // 添加上传button widget
                 const uploadWidget = this.addWidget(
                     "button",

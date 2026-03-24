@@ -204,14 +204,14 @@ app.registerExtension({
     name: "cryptio.Settings",
     settings: [
         {
-            id: "cryptio.category",
+            id: "cryptio.category" as any,
             name: "CryptIO Settings",
             type: "hidden",
             defaultValue: "",
             category: ["CryptIO🔒"]
         },
         {
-            id: "cryptio.download_client_keys",
+            id: "cryptio.download_client_keys" as any,
             name: "Download Client Keys",
             type: "boolean",
             defaultValue: false,
@@ -228,7 +228,7 @@ app.registerExtension({
             }
         },
         {
-            id: "cryptio.upload_client_keys",
+            id: "cryptio.upload_client_keys" as any,
             name: "Upload Client Keys",
             type: "boolean",
             category: ["CryptIO🔒", "Client Keys", "Upload"],
@@ -248,7 +248,7 @@ app.registerExtension({
             }
         },
         {
-            id: "cryptio.download_server_keys",
+            id: "cryptio.download_server_keys" as any,
             name: "Download Server Keys",
             type: "boolean",
             defaultValue: false,
@@ -265,7 +265,7 @@ app.registerExtension({
             }
         },
         {
-            id: "cryptio.upload_server_keys",
+            id: "cryptio.upload_server_keys" as any,
             name: "Upload Server Keys",
             type: "boolean",
             defaultValue: false,
@@ -284,7 +284,7 @@ app.registerExtension({
             }
         },
         {
-            id: "cryptio.generate_new_keys",
+            id: "cryptio.generate_new_keys" as any,
             name: "Generate New Client Keys",
             type: "boolean",
             defaultValue: false,
@@ -301,7 +301,7 @@ app.registerExtension({
             }
         },
         {
-            id: "cryptio.clear_all_keys",
+            id: "cryptio.clear_all_keys" as any,
             name: "Clear All Keys",
             type: "boolean",
             defaultValue: false,

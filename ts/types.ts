@@ -21,7 +21,6 @@ export interface CryptIONode {
     // Methods
     addDOMWidget: (name: string, type: string, element: HTMLElement, options?: any) => any;
     removeWidget: (widget: any) => void;
-    removeWidgetByName: (name: string) => void;
     addWidget: (type: string, name: string, value: any, callback?: any, options?: any) => any;
     
     // Lifecycle hooks

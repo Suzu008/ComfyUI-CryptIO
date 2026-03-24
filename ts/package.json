@@ -14,7 +14,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@comfyorg/comfyui-frontend-types": "^1.29.0",
+    "@comfyorg/comfyui-frontend-types": "^1.43.3",
     "typescript": "^5.9.3"
   }
 }

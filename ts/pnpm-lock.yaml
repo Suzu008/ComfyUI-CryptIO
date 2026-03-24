@@ -7,10 +7,11 @@ settings:
 importers:
 
   .:
-    devDependencies:
+    dependencies:
       '@comfyorg/comfyui-frontend-types':
-        specifier: ^1.29.0
-        version: 1.29.0(vue@3.5.22(typescript@5.9.3))(zod@3.25.76)
+        specifier: ^1.43.3
+        version: 1.43.3(vue@3.5.22(typescript@5.9.3))(zod@3.25.76)
+    devDependencies:
       typescript:
         specifier: ^5.9.3
         version: 5.9.3
@@ -34,8 +35,8 @@ packages:
     resolution: {integrity: sha512-bkFqkLhh3pMBUQQkpVgWDWq/lqzc2678eUyDlTBhRqhCHFguYYGM0Efga7tYk4TogG/3x0EEl66/OQ+WGbWB/Q==}
     engines: {node: '>=6.9.0'}
 
-  '@comfyorg/comfyui-frontend-types@1.29.0':
-    resolution: {integrity: sha512-Gf56EsxLQWe6u24WdqG4WRET4FRVLMhApJj98YmuEGxCMpWuHOqn4meFcpV5t7XoonXf07YFs7dWzVPlkkufRA==}
+  '@comfyorg/comfyui-frontend-types@1.43.3':
+    resolution: {integrity: sha512-wgtWJqntN1fKbVssdiIMNGNx4qfPCvOBVG74Dgx2aLZrrqeJ3ZsXLFSqmeFJTSH+whKWx7z+MX6la5Hr4BL+pg==}
     peerDependencies:
       vue: ^3.5.13
       zod: ^3.23.8
@@ -132,7 +133,7 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.27.1
 
-  '@comfyorg/comfyui-frontend-types@1.29.0(vue@3.5.22(typescript@5.9.3))(zod@3.25.76)':
+  '@comfyorg/comfyui-frontend-types@1.43.3(vue@3.5.22(typescript@5.9.3))(zod@3.25.76)':
     dependencies:
       vue: 3.5.22(typescript@5.9.3)
       zod: 3.25.76

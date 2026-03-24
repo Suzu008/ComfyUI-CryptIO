@@ -86,7 +86,10 @@ app.registerExtension({
                 const r = onNodeCreated?.apply(this, arguments);
 
                 // Remove default upload widget
-                this.removeWidgetByName("upload");
+                const uploadWidgetIndex = this.widgets.findIndex(w => w.name === "upload");
+                if (uploadWidgetIndex !== -1) {
+                    this.removeWidget(this.widgets[uploadWidgetIndex]);
+                }
 
                 // Add upload button widget
                 const uploadWidget = this.addWidget(
