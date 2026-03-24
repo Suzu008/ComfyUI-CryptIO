@@ -125,9 +125,7 @@ async function updateVideoWidget(widget: any, filename: string) {
             widget.element.style.overflow = "hidden";
 
             // Clear previous content
-            while (widget.element.firstChild) {
-                widget.element.removeChild(widget.element.firstChild);
-            }
+            widget.element.replaceChildren();
 
             // Add new video
             widget.element.appendChild(video);
@@ -159,9 +157,7 @@ function clearVideoWidget(widget: any) {
     widget.element.hidden = true;
     widget.value = { hidden: true };
 
-    while (widget.element.firstChild) {
-        widget.element.removeChild(widget.element.firstChild);
-    }
+    widget.element.replaceChildren();
 
     app.rootGraph?.setDirtyCanvas(true, false);
 }

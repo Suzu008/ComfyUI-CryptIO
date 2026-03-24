@@ -125,9 +125,7 @@ async function updateVideoWidget(widget: any, videoInfo: any) {
             widget.element.style.overflow = "hidden";
 
             // Clear previous content
-            while (widget.element.firstChild) {
-                widget.element.removeChild(widget.element.firstChild);
-            }
+            widget.element.replaceChildren();
 
             // Add new video
             widget.element.appendChild(video);
