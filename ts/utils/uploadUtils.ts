@@ -22,7 +22,7 @@ export async function uploadEncryptedImage(file: File): Promise<any> {
 
     // 创建FormData
     const formData = new FormData();
-    const encryptedBlob = new Blob([new Uint8Array(encryptedData)], {
+    const encryptedBlob = new Blob([encryptedData as BlobPart], {
         type: "application/octet-stream",
     });
     formData.append("image", encryptedBlob, file.name);

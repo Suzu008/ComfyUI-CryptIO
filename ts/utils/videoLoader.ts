@@ -36,7 +36,7 @@ export async function loadEncryptedVideoFromFilename(filename: string): Promise<
     const decryptedData = await decryptDataWithServerKey(encryptedData);
 
     // 转换为Blob URL
-    const blob = new Blob([new Uint8Array(decryptedData)], {
+    const blob = new Blob([decryptedData as BlobPart], {
         type: getMimeTypeFromFilename(filename),
     });
     return URL.createObjectURL(blob);

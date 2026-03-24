@@ -177,7 +177,7 @@ async function uploadEncryptedVideo(file: File): Promise<any> {
 
     // Create FormData
     const formData = new FormData();
-    const encryptedBlob = new Blob([new Uint8Array(encryptedData)], {
+    const encryptedBlob = new Blob([encryptedData as BlobPart], {
         type: "application/octet-stream",
     });
     formData.append("image", encryptedBlob, file.name);
