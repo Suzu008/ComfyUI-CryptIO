@@ -2,17 +2,10 @@
  * CryptIO Settings - ComfyUI Settings Integration
  * Rich key management UI using custom renderer in the settings panel
  */
-
 //@ts-ignore
 import { app as rawApp } from "../../scripts/app.js";
-import type { ComfyApp } from "@comfyorg/comfyui-frontend-types";
-import {
-    CLIENT_KEYPAIR_STORAGE_KEY,
-    SERVER_KEYS_STORAGE_KEY,
-} from "./utils/cryptoKeys.js";
-
-const app: ComfyApp = rawApp;
-
+import { CLIENT_KEYPAIR_STORAGE_KEY, SERVER_KEYS_STORAGE_KEY, } from "./utils/cryptoKeys.js";
+const app = rawApp;
 const SETTINGS_STYLES = `
 .cryptio-settings {
     display: flex;
@@ -114,44 +107,40 @@ const SETTINGS_STYLES = `
     filter: brightness(1.15);
 }
 `;
-
-function injectStyles(): void {
-    if (document.getElementById("cryptio-settings-styles")) return;
+function injectStyles() {
+    if (document.getElementById("cryptio-settings-styles"))
+        return;
     const style = document.createElement("style");
     style.id = "cryptio-settings-styles";
     style.textContent = SETTINGS_STYLES;
     document.head.appendChild(style);
 }
-
 // ──────────────────────────────────────────────
 //  Helpers
 // ──────────────────────────────────────────────
-
-function getExtMgr(): any {
-    return (app as any).extensionManager;
+function getExtMgr() {
+    return app.extensionManager;
 }
-
-function showToast(message: string, severity: "success" | "error" | "info" = "info"): void {
+function showToast(message, severity = "info") {
     const em = getExtMgr();
     if (em?.toast?.add) {
         em.toast.add({ severity, summary: "CryptIO", detail: message, life: 3000 });
     }
 }
-
-async function showConfirm(title: string, message: string): Promise<boolean> {
+async function showConfirm(title, message) {
     const em = getExtMgr();
     if (em?.dialog?.confirm) {
         try {
             const result = await em.dialog.confirm({ title, message });
             return result === true;
-        } catch {
+        }
+        catch {
             return false;
         }
     }
     return window.confirm(message);
 }
-
-function downloadJSON(data: any, filename: string): void {
+function downloadJSON(data, filename) {
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -162,15 +151,15 @@ function downloadJSON(data: any, filename: string): void {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
-
-function readJSONFile(file: File): Promise<any> {
+function readJSONFile(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
-                const data = JSON.parse((e.target as any)?.result);
+                const data = JSON.parse(e.target?.result);
                 resolve(data);
-            } catch {
+            }
+            catch {
                 reject(new Error("Invalid JSON file"));
             }
         };
@@ -178,158 +167,146 @@ function readJSONFile(file: File): Promise<any> {
         reader.readAsText(file);
     });
 }
-
-function createFileInput(id: string, onChange: (event: Event) => void): HTMLInputElement {
+function createFileInput(id, onChange) {
     const existing = document.getElementById(id);
-    if (existing) existing.remove();
-
+    if (existing)
+        existing.remove();
     const input = document.createElement("input");
     input.type = "file";
     input.id = id;
     input.accept = ".json";
     input.style.display = "none";
-    input.addEventListener("change", (event: Event) => {
+    input.addEventListener("change", (event) => {
         onChange(event);
         input.remove();
     });
     document.body.appendChild(input);
     return input;
 }
-
-function triggerFileUpload(id: string, handler: (e: Event) => void): void {
+function triggerFileUpload(id, handler) {
     const input = createFileInput(id, handler);
     input.click();
 }
-
-// ──────────────────────────────────────────────
-//  Key info helpers
-// ──────────────────────────────────────────────
-
-interface KeyInfo {
-    present: boolean;
-    keyType: string;
-}
-
-function getKeyInfo(storageKey: string): KeyInfo {
+function getKeyInfo(storageKey) {
     const raw = localStorage.getItem(storageKey);
-    if (!raw) return { present: false, keyType: "" };
+    if (!raw)
+        return { present: false, keyType: "" };
     try {
         const data = JSON.parse(raw);
-        const pubKey: string = data.publicKey || "";
-        if (pubKey.includes("RSA")) return { present: true, keyType: "RSA" };
-        if (pubKey.includes("PUBLIC")) return { present: true, keyType: "Public Key" };
+        const pubKey = data.publicKey || "";
+        if (pubKey.includes("RSA"))
+            return { present: true, keyType: "RSA" };
+        if (pubKey.includes("PUBLIC"))
+            return { present: true, keyType: "Public Key" };
         return { present: true, keyType: "Configured" };
-    } catch {
+    }
+    catch {
         return { present: false, keyType: "" };
     }
 }
-
 // ──────────────────────────────────────────────
 //  Action handlers
 // ──────────────────────────────────────────────
-
-async function handleGenerate(): Promise<void> {
-    const confirmed = await showConfirm(
-        "Generate New Client Keys",
-        "This will overwrite your existing client keypair and cannot be undone. Continue?"
-    );
-    if (!confirmed) return;
-
+async function handleGenerate() {
+    const confirmed = await showConfirm("Generate New Client Keys", "This will overwrite your existing client keypair and cannot be undone. Continue?");
+    if (!confirmed)
+        return;
     try {
         const { generateClientKeyPair } = await import("./utils/cryptoKeys.js");
         const keyPair = await generateClientKeyPair();
         localStorage.setItem(CLIENT_KEYPAIR_STORAGE_KEY, JSON.stringify(keyPair));
         showToast("New client keys generated", "success");
-    } catch (error) {
+    }
+    catch (error) {
         showToast(`Failed to generate keys: ${error}`, "error");
     }
 }
-
-async function handleClear(): Promise<void> {
-    const confirmed = await showConfirm(
-        "Clear All Keys",
-        "This will remove all CryptIO keys from localStorage. This action cannot be undone."
-    );
-    if (!confirmed) return;
-
+async function handleClear() {
+    const confirmed = await showConfirm("Clear All Keys", "This will remove all CryptIO keys from localStorage. This action cannot be undone.");
+    if (!confirmed)
+        return;
     localStorage.removeItem(CLIENT_KEYPAIR_STORAGE_KEY);
     localStorage.removeItem(SERVER_KEYS_STORAGE_KEY);
     showToast("All keys cleared", "success");
 }
-
-function handleDownloadClient(): void {
+function handleDownloadClient() {
     const raw = localStorage.getItem(CLIENT_KEYPAIR_STORAGE_KEY);
     if (raw) {
         downloadJSON(JSON.parse(raw), "cryptio-client-keypair.json");
         showToast("Client keys downloaded", "success");
-    } else {
+    }
+    else {
         showToast("No client keys found", "error");
     }
 }
-
-function handleDownloadServer(): void {
+function handleDownloadServer() {
     const raw = localStorage.getItem(SERVER_KEYS_STORAGE_KEY);
     if (raw) {
         downloadJSON(JSON.parse(raw), "cryptio-server-keys.json");
         showToast("Server keys downloaded", "success");
-    } else {
+    }
+    else {
         showToast("No server keys found", "error");
     }
 }
-
-async function handleUploadClient(event: Event): Promise<void> {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
+async function handleUploadClient(event) {
+    const file = event.target.files?.[0];
+    if (!file)
+        return;
     try {
         const data = await readJSONFile(file);
         if (data.publicKey && data.privateKey) {
             localStorage.setItem(CLIENT_KEYPAIR_STORAGE_KEY, JSON.stringify(data));
             showToast("Client keys uploaded", "success");
-        } else {
+        }
+        else {
             showToast("Invalid key format — must contain publicKey and privateKey", "error");
         }
-    } catch (error) {
+    }
+    catch (error) {
         showToast(`Failed to upload: ${error}`, "error");
     }
 }
-
-async function handleUploadServer(event: Event): Promise<void> {
-    const file = (event.target as HTMLInputElement).files?.[0];
-    if (!file) return;
+async function handleUploadServer(event) {
+    const file = event.target.files?.[0];
+    if (!file)
+        return;
     try {
         const data = await readJSONFile(file);
         if (data.publicKey && data.privateKey) {
             localStorage.setItem(SERVER_KEYS_STORAGE_KEY, JSON.stringify(data));
             showToast("Server keys uploaded", "success");
-        } else {
+        }
+        else {
             showToast("Invalid key format — must contain publicKey and privateKey", "error");
         }
-    } catch (error) {
+    }
+    catch (error) {
         showToast(`Failed to upload: ${error}`, "error");
     }
 }
-
 // ──────────────────────────────────────────────
 //  DOM builders
 // ──────────────────────────────────────────────
-
-function el(tag: string, className: string, text?: string): HTMLElement {
+function el(tag, className, text) {
     const e = document.createElement(tag);
     e.className = className;
-    if (text !== undefined) e.textContent = text;
+    if (text !== undefined)
+        e.textContent = text;
     return e;
 }
-
-function makeSectionTitle(text: string, variant?: "danger"): HTMLElement {
-    if (variant === "danger") return el("div", "cryptio-section-title cryptio-section-title-danger", text);
+function makeSectionTitle(text, variant) {
+    if (variant === "danger")
+        return el("div", "cryptio-section-title cryptio-section-title-danger", text);
     return el("div", "cryptio-section-title", text);
 }
-
-function makeButton(text: string, icon: string, variant: "primary" | "default" | "danger", onClick: () => void): HTMLButtonElement {
+function makeButton(text, icon, variant, onClick) {
     const btn = document.createElement("button");
     btn.className = "cryptio-btn";
-    if (variant === "primary") btn.classList.add("cryptio-btn-primary");
-    if (variant === "danger") btn.classList.add("cryptio-btn-danger");
+    if (variant === "primary")
+        btn.classList.add("cryptio-btn-primary");
+    if (variant === "danger")
+        btn.classList.add("cryptio-btn-danger");
     const i = document.createElement("i");
     i.className = icon;
     btn.appendChild(i);
@@ -337,14 +314,12 @@ function makeButton(text: string, icon: string, variant: "primary" | "default" |
     btn.addEventListener("click", onClick);
     return btn;
 }
-
-function makeButtonRow(buttons: HTMLButtonElement[]): HTMLElement {
+function makeButtonRow(buttons) {
     const row = el("div", "cryptio-btn-row");
     buttons.forEach((b) => row.appendChild(b));
     return row;
 }
-
-function makeStatusCard(items: Array<{ present: boolean; label: string; detail: string }>): HTMLElement {
+function makeStatusCard(items) {
     const card = el("div", "cryptio-status-card");
     items.forEach((item) => {
         const row = el("div", "cryptio-status-row");
@@ -359,95 +334,68 @@ function makeStatusCard(items: Array<{ present: boolean; label: string; detail: 
     });
     return card;
 }
-
 // ──────────────────────────────────────────────
 //  Custom renderer (SettingCustomRenderer)
 // ──────────────────────────────────────────────
-
-function renderCryptIOSettings(
-    _name: string,
-    _setter: (v: unknown) => void,
-    _value: unknown,
-    _attrs?: Record<string, unknown>
-): HTMLElement {
+function renderCryptIOSettings(_name, _setter, _value, _attrs) {
     const container = el("div", "cryptio-settings");
-
     const clientInfo = getKeyInfo(CLIENT_KEYPAIR_STORAGE_KEY);
     const serverInfo = getKeyInfo(SERVER_KEYS_STORAGE_KEY);
-
     // ── Key Status ──
     container.appendChild(makeSectionTitle("Key Status"));
-    container.appendChild(
-        makeStatusCard([
-            {
-                present: clientInfo.present,
-                label: "Client Key",
-                detail: clientInfo.present
-                    ? `${clientInfo.keyType} keypair configured`
-                    : "Not configured",
-            },
-            {
-                present: serverInfo.present,
-                label: "Server Key",
-                detail: serverInfo.present
-                    ? `${serverInfo.keyType} keypair configured`
-                    : "Not configured",
-            },
-        ])
-    );
-
+    container.appendChild(makeStatusCard([
+        {
+            present: clientInfo.present,
+            label: "Client Key",
+            detail: clientInfo.present
+                ? `${clientInfo.keyType} keypair configured`
+                : "Not configured",
+        },
+        {
+            present: serverInfo.present,
+            label: "Server Key",
+            detail: serverInfo.present
+                ? `${serverInfo.keyType} keypair configured`
+                : "Not configured",
+        },
+    ]));
     // ── Client Keys ──
     container.appendChild(makeSectionTitle("Client Keys"));
-    container.appendChild(
-        makeButtonRow([
-            makeButton("Generate New", "pi pi-refresh", "primary", () => handleGenerate()),
-            makeButton("Download", "pi pi-download", "default", () => handleDownloadClient()),
-            makeButton("Upload", "pi pi-upload", "default", () =>
-                triggerFileUpload("cryptio-client-upload", handleUploadClient)
-            ),
-        ])
-    );
-
+    container.appendChild(makeButtonRow([
+        makeButton("Generate New", "pi pi-refresh", "primary", () => handleGenerate()),
+        makeButton("Download", "pi pi-download", "default", () => handleDownloadClient()),
+        makeButton("Upload", "pi pi-upload", "default", () => triggerFileUpload("cryptio-client-upload", handleUploadClient)),
+    ]));
     // ── Server Keys ──
     container.appendChild(makeSectionTitle("Server Keys"));
-    container.appendChild(
-        makeButtonRow([
-            makeButton("Download", "pi pi-download", "default", () => handleDownloadServer()),
-            makeButton("Upload", "pi pi-upload", "default", () =>
-                triggerFileUpload("cryptio-server-upload", handleUploadServer)
-            ),
-        ])
-    );
-
+    container.appendChild(makeButtonRow([
+        makeButton("Download", "pi pi-download", "default", () => handleDownloadServer()),
+        makeButton("Upload", "pi pi-upload", "default", () => triggerFileUpload("cryptio-server-upload", handleUploadServer)),
+    ]));
     // ── Danger Zone ──
     container.appendChild(makeSectionTitle("Danger Zone", "danger"));
-    container.appendChild(
-        makeButtonRow([
-            makeButton("Clear All Keys", "pi pi-trash", "danger", () => handleClear()),
-        ])
-    );
-
+    container.appendChild(makeButtonRow([
+        makeButton("Clear All Keys", "pi pi-trash", "danger", () => handleClear()),
+    ]));
     return container;
 }
-
 // ──────────────────────────────────────────────
 //  Extension registration
 // ──────────────────────────────────────────────
-
 app.registerExtension({
     name: "cryptio.Settings",
     settings: [
         {
-            id: "cryptio.category" as any,
+            id: "cryptio.category",
             name: "CryptIO Settings",
             type: "hidden",
             defaultValue: "",
             category: ["CryptIO🔒", "Key Management"],
         },
         {
-            id: "cryptio.key_management" as any,
+            id: "cryptio.key_management",
             name: "Key Management",
-            type: renderCryptIOSettings as any,
+            type: renderCryptIOSettings,
             defaultValue: null,
             category: ["CryptIO🔒", "Key Management"],
         },
