@@ -22,7 +22,19 @@ class UploadImageCryptIO:
     def INPUT_TYPES(s):
         input_dir = folder_paths.get_input_directory()
         files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
-        encrypted_files = [f for f in files if f.endswith(".encrypted")]
+        encrypted_files = [
+            f
+            for f in files
+            if f.endswith(
+                (
+                    ".png.encrypted",
+                    ".jpg.encrypted",
+                    ".jpeg.encrypted",
+                    ".webp.encrypted",
+                    ".avif.encrypted",
+                )
+            )
+        ]
         all_files = sorted(set(encrypted_files))
 
         return {

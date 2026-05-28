@@ -20,10 +20,19 @@ class UploadVideoCryptIO(io.ComfyNode):
         files = [f for f in os.listdir(input_dir) if os.path.isfile(os.path.join(input_dir, f))]
         # Support encrypted video files
         encrypted_video_files = [
-            f for f in files if f.endswith((
-                ".mp4.encrypted", ".avi.encrypted", ".mov.encrypted",
-                ".mkv.encrypted", ".webm.encrypted"
-            ))
+            f
+            for f in files
+            if f.endswith(
+                (
+                    ".mp4.encrypted",
+                    ".avi.encrypted",
+                    ".mov.encrypted",
+                    ".mkv.encrypted",
+                    ".webm.encrypted",
+                    ".gif.encrypted",
+                    ".avif.encrypted",
+                )
+            )
         ]
         all_files = sorted(set(encrypted_video_files))
 
