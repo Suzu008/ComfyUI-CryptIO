@@ -54,6 +54,7 @@ async function handleVideoUpload(node: CryptIONode, file: File, app: CryptIOApp)
         );
         if (videoWidget) {
             videoWidget.value = result.name;
+            videoWidget.callback?.call(videoWidget, result.name);
         }
 
         // Update preview

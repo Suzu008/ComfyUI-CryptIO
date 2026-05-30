@@ -62,6 +62,7 @@ export async function handleFileUpload(node: CryptIONode, file: File, app: Comfy
         );
         if (imageWidget) {
             imageWidget.value = result.name;
+            imageWidget.callback?.call(imageWidget, result.name);
         }
 
         // 更新预览
