@@ -2,7 +2,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
-/js
 # OSX useful to ignore
 *.DS_Store
 .AppleDouble
@@ -102,6 +101,7 @@ cookiecutter-pypackage-env/
 *.code-workspace
 
 # Frontend extension
+js/
 node_modules/
 .env
 .env.local

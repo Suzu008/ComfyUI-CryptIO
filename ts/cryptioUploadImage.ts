@@ -11,6 +11,7 @@ import type { CryptIONode, CryptIOApp } from "./types.js";
 
 import { exchangeKeys } from "./utils/cryptoKeys.js";
 import { handleFileUpload, createPreviewUpdateFunction } from "./utils/uploadUtils.js";
+import { syncSWStatus } from "./utils/swSync.js";
 
 const app: CryptIOApp = rawApp as any;
 const api: ComfyApi = rawApi;
@@ -23,6 +24,7 @@ app.registerExtension({
         try {
             await exchangeKeys();
             console.log("CryptIO: Keys exchanged successfully");
+            await syncSWStatus();
         } catch (error) {
             console.error("CryptIO: Failed to exchange keys:", error);
         }
@@ -146,13 +148,9 @@ app.registerExtension({
                 return r;
             };
 
-            // Cleanup blob URLs on node removal
+            // Cleanup on node removal
             const onRemoved = nodeType.prototype.onRemoved;
             nodeType.prototype.onRemoved = function (this: CryptIONode) {
-                if (this._cryptioPreviewUrl) {
-                    URL.revokeObjectURL(this._cryptioPreviewUrl);
-                    this._cryptioPreviewUrl = null;
-                }
                 if (onRemoved) {
                     onRemoved.apply(this, arguments);
                 }

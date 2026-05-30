@@ -6,7 +6,7 @@
 import type { ComfyApp } from "@comfyorg/comfyui-frontend-types";
 import type { CryptIONode } from "../types.js";
 import { encryptFileWithServerKey } from "./cryptoUtils.js";
-import { loadEncryptedImageFromFilename } from "./imageLoader.js";
+import { syncSWStatus } from "./swSync.js";
 
 /**
  * Upload an encrypted file to the server (encrypted with server public key).
@@ -68,8 +68,6 @@ export async function handleFileUpload(node: CryptIONode, file: File, app: Comfy
         if (node.updatePreview) {
             await node.updatePreview(result.name);
         }
-
-        app.rootGraph?.setDirtyCanvas(true, false);
     } catch (error) {
         console.error("Upload error:", error);
         alert("Failed to upload encrypted image: " + error);
@@ -83,28 +81,30 @@ export async function handleFileUpload(node: CryptIONode, file: File, app: Comfy
  */
 export function createPreviewUpdateFunction(app: ComfyApp) {
     return async function (this: CryptIONode, filename: string) {
-        if (!filename || !filename.endsWith(".encrypted")) {
-            return;
-        }
+        if (!filename || !filename.endsWith(".encrypted")) return;
+
+        const url = `/api/view?filename=${encodeURIComponent(filename)}&type=input`;
+
+        const loadImage = (): Promise<HTMLImageElement> =>
+            new Promise((resolve, reject) => {
+                const i = new Image();
+                i.onload = () => resolve(i);
+                i.onerror = () => reject(new Error(`Failed to load: ${filename}`));
+                i.src = url;
+            });
 
         try {
-            // Revoke previous blob URL to prevent memory leak
-            if (this._cryptioPreviewUrl) {
-                URL.revokeObjectURL(this._cryptioPreviewUrl);
-            }
-
-            const imageUrl = await loadEncryptedImageFromFilename(filename);
-            this._cryptioPreviewUrl = imageUrl;
-
-            // 更新节点的图片显示
-            const img = new Image();
-            img.onload = () => {
-                this.imgs = [img];
+            this.imgs = [await loadImage()];
+            app.rootGraph?.setDirtyCanvas(true, false);
+        } catch {
+            console.warn("[CryptIO] Preview load failed, syncing SW status and retrying...");
+            try {
+                await syncSWStatus();
+                this.imgs = [await loadImage()];
                 app.rootGraph?.setDirtyCanvas(true, false);
-            };
-            img.src = imageUrl;
-        } catch (error) {
-            console.error("Preview error:", error);
+            } catch (err) {
+                console.error("[CryptIO] Preview failed after sync:", filename, err);
+            }
         }
     };
 }

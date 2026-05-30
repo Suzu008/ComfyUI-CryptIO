@@ -10,6 +10,7 @@ import {
     CLIENT_KEYPAIR_STORAGE_KEY,
     SERVER_KEYS_STORAGE_KEY,
 } from "./utils/cryptoKeys.js";
+import { syncSWStatus, clearSWKeys } from "./utils/swSync.js";
 
 const app: ComfyApp = rawApp;
 
@@ -239,6 +240,7 @@ async function handleGenerate(): Promise<void> {
         const { generateClientKeyPair } = await import("./utils/cryptoKeys.js");
         const keyPair = await generateClientKeyPair();
         localStorage.setItem(CLIENT_KEYPAIR_STORAGE_KEY, JSON.stringify(keyPair));
+        await syncSWStatus();
         showToast("New client keys generated", "success");
     } catch (error) {
         showToast(`Failed to generate keys: ${error}`, "error");
@@ -254,6 +256,7 @@ async function handleClear(): Promise<void> {
 
     localStorage.removeItem(CLIENT_KEYPAIR_STORAGE_KEY);
     localStorage.removeItem(SERVER_KEYS_STORAGE_KEY);
+    clearSWKeys();
     showToast("All keys cleared", "success");
 }
 
@@ -284,6 +287,7 @@ async function handleUploadClient(event: Event): Promise<void> {
         const data = await readJSONFile(file);
         if (data.publicKey && data.privateKey) {
             localStorage.setItem(CLIENT_KEYPAIR_STORAGE_KEY, JSON.stringify(data));
+            await syncSWStatus();
             showToast("Client keys uploaded", "success");
         } else {
             showToast("Invalid key format — must contain publicKey and privateKey", "error");
@@ -300,6 +304,7 @@ async function handleUploadServer(event: Event): Promise<void> {
         const data = await readJSONFile(file);
         if (data.publicKey && data.privateKey) {
             localStorage.setItem(SERVER_KEYS_STORAGE_KEY, JSON.stringify(data));
+            await syncSWStatus();
             showToast("Server keys uploaded", "success");
         } else {
             showToast("Invalid key format — must contain publicKey and privateKey", "error");

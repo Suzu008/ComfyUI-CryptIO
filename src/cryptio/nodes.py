@@ -33,8 +33,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "SaveImageCryptIO": "Save Image 🔒",
     "PreviewImageCryptIO": "Preview Image 🔒",
     
-    # 视频处理 deprecated, now defined in node schema
-    # "UploadVideoCryptIO": "Upload Video 🔒",
-    # "SaveVideoCryptIO": "Save Video 🔒",
-    # "PreviewVideoCryptIO": "Preview Video 🔒",
+    # 视频处理
+    "UploadVideoCryptIO": "Upload Video 🔒",
+    "SaveVideoCryptIO": "Save Video 🔒",
+    "PreviewVideoCryptIO": "Preview Video 🔒",
 }

@@ -174,3 +174,23 @@ async def view_encrypted_image(request):
     except Exception as e:
         print(f"Error viewing encrypted image: {e}")
         return web.json_response({"error": str(e)}, status=500)
+
+
+@PromptServer.instance.routes.get("/cryptio-sw.js")
+async def serve_service_worker(request):
+    """Serve the Service Worker script from root so its natural scope is '/'.
+
+    Served from /cryptio-sw.js (no subdirectory) → natural scope is /.
+    No Service-Worker-Allowed header needed.
+    """
+    sw_path = os.path.join(os.path.dirname(__file__), "..", "..", "js", "sw.js")
+    if not os.path.exists(sw_path):
+        return web.json_response({"error": "Service Worker script not found"}, status=404)
+
+    with open(sw_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    return web.Response(
+        text=content,
+        content_type="application/javascript",
+    )

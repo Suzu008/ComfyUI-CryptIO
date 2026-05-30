@@ -36,6 +36,19 @@ export interface CryptIONode {
 }
 
 /**
+ * Service Worker status reported via sync message.
+ */
+export interface SWStatus {
+    ready: boolean;
+    interceptEnabled: boolean;
+    keys: {
+        client: { loaded: boolean; fingerprint: string | null };
+        server: { loaded: boolean; fingerprint: string | null };
+    };
+    lastError: string | null;
+}
+
+/**
  * Custom properties for Video Preview widgets.
  */
 export interface VideoPreviewWidget {

@@ -64,11 +64,17 @@ export async function loadEncryptedImageFromParams(api: ComfyApi, params: ImageL
     }
 
     // 直接读取二进制数据
+    let decryptedData: Uint8Array;
     const encryptedArrayBuffer = await response.arrayBuffer();
     const encryptedData = new Uint8Array(encryptedArrayBuffer);
 
-    // 使用客户端私钥解密（SaveImage/PreviewImage场景）
-    const decryptedData = await decryptFileWithClientKey(encryptedData);
+    // If the Service Worker already decrypted the response, skip re-decryption
+    if (response.headers.get("X-CryptIO-Decrypted") === "1") {
+        decryptedData = encryptedData;
+    } else {
+        // 使用客户端私钥解密（SaveImage/PreviewImage场景）
+        decryptedData = await decryptFileWithClientKey(encryptedData);
+    }
 
     // 转换为Blob URL
     const blob = new Blob([decryptedData as BlobPart], {

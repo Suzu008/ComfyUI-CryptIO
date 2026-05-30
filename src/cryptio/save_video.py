@@ -2,7 +2,6 @@ import os
 import random
 from io import BytesIO
 import folder_paths  # pyright: ignore[reportMissingImports]
-from .utils import _key_manager
 import av
 import torch
 import numpy as np
@@ -182,8 +181,6 @@ class SaveVideoCryptIO(io.ComfyNode):
                     metadata["prompt"] = cls.hidden.prompt
 
             # Save video to in-memory buffer to avoid writing plaintext to disk
-            buffer = BytesIO()
-            # Save video to in-memory buffer using unified helper
             buffer = BytesIO()
             _save_to_bytesio_impl(video, buffer, metadata=metadata)
             video_data = buffer.getvalue()

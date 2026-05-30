@@ -10,8 +10,8 @@ import type {
 import type { CryptIONode, VideoPreviewWidget, CryptIOApp } from "./types.js";
 
 import { exchangeKeys } from "./utils/cryptoKeys.js";
-import { loadEncryptedVideoFromFilename } from "./utils/videoLoader.js";
 import { uploadEncryptedFile } from "./utils/uploadUtils.js";
+import { syncSWStatus } from "./utils/swSync.js";
 import {
     createVideoWidget,
     renderVideoInWidget,
@@ -22,11 +22,22 @@ const app: CryptIOApp = rawApp as any;
 const api: ComfyApi = rawApi;
 
 /**
- * Load encrypted video from filename and render in widget
+ * Load encrypted video from filename and render in widget.
+ * SW intercepts /view?*.encrypted → decrypts transparently with server key.
  */
 async function updateVideoWidget(widget: VideoPreviewWidget, filename: string) {
-    const videoUrl = await loadEncryptedVideoFromFilename(filename);
-    await renderVideoInWidget(widget, videoUrl);
+    const url = `/api/view?filename=${encodeURIComponent(filename)}&type=input`;
+    try {
+        await renderVideoInWidget(widget, url);
+    } catch {
+        console.warn("[CryptIO] Video preview load failed, syncing SW and retrying...");
+        try {
+            await syncSWStatus();
+            await renderVideoInWidget(widget, url);
+        } catch (err) {
+            console.error("[CryptIO] Video preview failed after sync:", filename, err);
+        }
+    }
 }
 
 /**
@@ -70,6 +81,7 @@ app.registerExtension({
         try {
             await exchangeKeys();
             console.log("CryptIO: Keys exchanged successfully for video upload");
+            await syncSWStatus();
         } catch (error) {
             console.error("CryptIO: Failed to exchange keys:", error);
         }
