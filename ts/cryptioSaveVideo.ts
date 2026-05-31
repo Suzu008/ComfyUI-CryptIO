@@ -55,38 +55,53 @@ app.registerExtension({
             if (message?.cryptio_images) {
                 const autoDownload = this.widgets.find((n: any) => n.name === "auto_download")?.value;
 
-                // Remove existing video preview widgets
+                // Get existing video preview widgets (reuse them to avoid re-mount in VueNodes mode)
                 const existingWidgets = this.widgets.filter((w: any) =>
                     w.type === "video-preview"
                 );
-                for (const widget of existingWidgets) {
-                    clearVideoWidget(widget);
-                    this.removeWidget(widget);
+
+                // Remove excess widgets if fewer videos than existing widgets
+                for (let i = message.cryptio_images.length; i < existingWidgets.length; i++) {
+                    clearVideoWidget(existingWidgets[i]);
+                    this.removeWidget(existingWidgets[i]);
                 }
 
-                // Create widgets and decrypt videos in parallel
+                // Reuse existing widgets or create new ones as needed
                 const updatePromises: Promise<void>[] = [];
                 for (let i = 0; i < message.cryptio_images.length; i++) {
                     const videoInfo = message.cryptio_images[i];
-                    if (videoInfo.filename && videoInfo.filename.endsWith(".encrypted")) {
-                        const widget = createVideoWidget(this, {
+                    if (!videoInfo.filename || !videoInfo.filename.endsWith(".encrypted")) continue;
+
+                    let widget = existingWidgets[i];
+                    if (widget) {
+                        // Clean up previous video content before reusing the widget
+                        if (widget.videoElement) {
+                            widget.videoElement.pause();
+                            widget.videoElement.src = "";
+                        }
+                        if (widget.videoUrl) {
+                            URL.revokeObjectURL(widget.videoUrl);
+                        }
+                        widget.videoInfo = videoInfo;
+                        widget.value = { ...widget.value, videoInfo };
+                    } else {
+                        widget = createVideoWidget(this, {
                             widgetName: `video_${i}`,
                             videoInfo,
                         });
-
-                        updatePromises.push(
-                            updateVideoWidget(widget, videoInfo)
-                                .then((videoUrl) => {
-                                    if (autoDownload) {
-                                        downloadDecryptedVideo(videoUrl, videoInfo.filename);
-                                        console.log(`Auto-downloaded decrypted video: ${videoInfo.filename.replace(/\.encrypted$/, "")}`);
-                                    }
-                                })
-                                .catch((error) => {
-                                    console.error("Failed to load video:", error);
-                                })
-                        );
                     }
+
+                    updatePromises.push(
+                        updateVideoWidget(widget, videoInfo)
+                            .then((videoUrl) => {
+                                if (autoDownload) {
+                                    downloadDecryptedVideo(videoUrl, videoInfo.filename);
+                                }
+                            })
+                            .catch((error) => {
+                                console.error("Failed to load video:", error);
+                            })
+                    );
                 }
                 await Promise.allSettled(updatePromises);
             }

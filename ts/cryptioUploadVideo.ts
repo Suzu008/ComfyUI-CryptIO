@@ -48,21 +48,13 @@ async function handleVideoUpload(node: CryptIONode, file: File, app: CryptIOApp)
         // Upload encrypted video
         const result = await uploadEncryptedFile(file);
 
-        // Update video widget value
+        // Update video widget value (callback handles preview update)
         const videoWidget = node.widgets.find(
             (w: any) => w.name === "video"
         );
         if (videoWidget) {
             videoWidget.value = result.name;
-            videoWidget.callback?.call(videoWidget, result.name);
-        }
-
-        // Update preview
-        const previewWidget = node.widgets.find(
-            (w: any) => w.type === "video-preview"
-        ) as VideoPreviewWidget;
-        if (previewWidget) {
-            await updateVideoWidget(previewWidget, result.name);
+            await videoWidget.callback?.call(videoWidget, result.name);
         }
 
         if (app.rootGraph) {
