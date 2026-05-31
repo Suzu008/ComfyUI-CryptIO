@@ -124,15 +124,13 @@ app.registerExtension({
                 // Create video preview widget
                 const previewWidget = createVideoWidget(this, { hidden: true });
 
+                // Store preview widget reference for configure
+                this._cryptioPreviewWidget = previewWidget;
+
                 // Update preview when video value changes
                 const videoWidget = this.widgets.find((w: any) => w.name === "video");
                 if (videoWidget) {
                     const originalCallback = videoWidget.callback;
-
-                    // Initial preview update
-                    if (videoWidget.value && videoWidget.value.endsWith(".encrypted")) {
-                        updateVideoWidget(previewWidget, videoWidget.value).catch(console.error);
-                    }
 
                     videoWidget.callback = async function (this: any, value: any) {
                         if (originalCallback) {
@@ -190,6 +188,24 @@ app.registerExtension({
                 };
 
                 return r;
+            };
+
+            // Override configure to update preview after workflow values are restored
+            const onConfigure = nodeType.prototype.configure;
+            nodeType.prototype.configure = function (this: CryptIONode, info: any) {
+                if (onConfigure) {
+                    onConfigure.apply(this, arguments);
+                }
+
+                const videoWidget = this.widgets.find((w: any) => w.name === "video");
+                const previewWidget = this._cryptioPreviewWidget;
+                if (videoWidget && previewWidget) {
+                    if (videoWidget.value && videoWidget.value.endsWith(".encrypted")) {
+                        updateVideoWidget(previewWidget as VideoPreviewWidget, videoWidget.value).catch(console.error);
+                    } else {
+                        clearVideoWidget(previewWidget as VideoPreviewWidget);
+                    }
+                }
             };
 
             // Cleanup on node removal
